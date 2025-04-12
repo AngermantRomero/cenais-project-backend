@@ -3,7 +3,7 @@ export class CreateUserDto {
   userName: string;
   lastName: string;
   email: string;
-  phone: number;
+  phone: string;
   roles_idRole: number;
   createdAt: Date;
   passsword: string;
