@@ -1,21 +1,23 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity()
+@Entity('usuarios')
 export class User {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ name: 'idUsuario' })
   id: number;
-  @Column()
-  userName: string;
-  @Column()
-  lastName: string;
-  @Column({ unique: true })
+
+  @Column({ name: 'Nombre', length: 45, nullable: false })
+  name: string;
+  @Column({ name: 'Apellido', length: 45, nullable: false })
+  lastname: string;
+  @Column({ name: 'phone', length: 45, nullable: true })
+  phone?: string;
+  @Column({ name: 'correo', length: 45, nullable: true })
   email: string;
-  @Column({ nullable: true })
-  phone: string;
-  @Column({ unique: true })
-  role: number;
+  @Column({ name: 'Roles_idRole', nullable: false })
+  rolId: number;
   @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
-  @Column()
+
+  @Column({ name: 'password', length: 45, nullable: false })
   password: string;
 }
