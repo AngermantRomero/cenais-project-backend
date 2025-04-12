@@ -1,6 +1,14 @@
-import { Body, Controller, Post, Get } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Get,
+  Param,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
+import { User } from './user.entity';
 
 @Controller('users')
 export class UsersController {
@@ -13,5 +21,13 @@ export class UsersController {
   @Post()
   createUser(@Body() newUser: CreateUserDto) {
     return this.usersService.createUser(newUser);
+  }
+  @Get(':id')
+  async getUser(@Param('id', ParseIntPipe) id: number): Promise<User> {
+    const user = await this.usersService.getUser(id);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    return user;
   }
 }
