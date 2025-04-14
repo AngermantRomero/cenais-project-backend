@@ -1,0 +1,23 @@
+services:
+  mysql:
+    image: mysql:latest
+    container_name: cenais_mysql_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: cenais_db
+      MYSQL_USER: cenais_user
+      MYSQL_PASSWORD: cenais_pass
+    volumes:
+      - db-data:/var/lib/mysql
+    ports:
+      - 3306:3306
+    networks:
+      - app-network
+
+volumes:
+  db-data:
+
+networks:
+  app-network:
+    driver: bridge

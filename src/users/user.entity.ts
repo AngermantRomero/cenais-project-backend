@@ -1,23 +1,68 @@
 import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
-@Entity('usuarios')
+@Entity('users')
 export class User {
-  @PrimaryGeneratedColumn({ name: 'idUsuario' })
+  @PrimaryGeneratedColumn('uuid')
   id: number;
 
-  @Column({ name: 'Nombre', length: 45, nullable: false })
+  @Column({
+    type: 'varchar',
+    length: 45,
+    nullable: false,
+  })
   name: string;
-  @Column({ name: 'Apellido', length: 45, nullable: false })
-  lastname: string;
-  @Column({ name: 'phone', length: 45, nullable: true })
+
+  @Column({
+    type: 'varchar',
+    length: 45,
+    nullable: false,
+  })
+  lastName: string;
+
+  @Column({
+    type: 'varchar',
+    length: 45,
+    nullable: true,
+  })
   phone?: string;
-  @Column({ name: 'correo', length: 45, nullable: true })
+
+  @Column({
+    type: 'varchar',
+    length: 45,
+    nullable: false,
+    unique: true,
+  })
   email: string;
-  @Column({ name: 'Roles_idRole', nullable: false })
-  rolId: number;
-  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+
+  @Column({
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+  })
+  password: string;
+
+  @Column({
+    type: 'varchar',
+    length: 45,
+    nullable: false,
+  })
+  roleId: number;
+
+  @Column({
+    type: 'boolean',
+    default: true,
+  })
+  isActive: boolean;
+
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   createdAt: Date;
 
-  @Column({ name: 'password', length: 45, nullable: false })
-  password: string;
+  @Column({
+    type: 'datetime',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  updateAt: Date;
 }
