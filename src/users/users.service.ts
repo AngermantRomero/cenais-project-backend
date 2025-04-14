@@ -11,24 +11,24 @@ export class UsersService {
     @InjectRepository(User) private userRepository: Repository<User>,
   ) {}
 
-  createUser(user: CreateUserDto) {
+  async createUser(user: CreateUserDto) {
     const newUser = this.userRepository.create(user);
-    return this.userRepository.save(newUser);
+    return await this.userRepository.save(newUser);
   }
-  getUsers() {
-    return this.userRepository.find();
+  async getUsers() {
+    return await this.userRepository.find();
   }
-  getUser(id: number) {
-    return this.userRepository.findOne({
+  async getUser(id: number) {
+    return await this.userRepository.findOne({
       where: {
         id,
       },
     });
   }
-  deleteUser(id: number) {
-    return this.userRepository.delete({ id });
+  async deleteUser(id: number) {
+    return await this.userRepository.delete({ id });
   }
-  updateUser(id: number, user: updateUserDto) {
-    return this.userRepository.update({ id }, user);
+  async updateUser(id: number, user: updateUserDto) {
+    return await this.userRepository.update({ id }, user);
   }
 }
