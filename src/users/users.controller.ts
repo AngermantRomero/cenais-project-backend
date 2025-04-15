@@ -4,7 +4,6 @@ import {
   Post,
   Get,
   Param,
-  ParseIntPipe,
   Delete,
   Patch,
 } from '@nestjs/common';
@@ -26,7 +25,7 @@ export class UsersController {
     return this.usersService.createUser(newUser);
   }
   @Get(':id')
-  async getUser(@Param('id', ParseIntPipe) id: number): Promise<User> {
+  async getUser(@Param('id') id: string): Promise<User> {
     const user = await this.usersService.getUser(id);
     if (!user) {
       throw new Error('User not found');
@@ -34,12 +33,12 @@ export class UsersController {
     return user;
   }
   @Delete(':id')
-  deleteUser(@Param('id', ParseIntPipe) id: number) {
+  deleteUser(@Param('id') id: string) {
     return this.usersService.deleteUser(id);
   }
   @Patch(':id')
   updateUser(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string,
     @Body()
     user: UpdateUserDto,
   ) {

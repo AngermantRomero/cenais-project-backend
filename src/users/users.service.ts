@@ -18,17 +18,17 @@ export class UsersService {
   async getUsers() {
     return await this.userRepository.find();
   }
-  async getUser(id: number) {
+  async getUser(id: string) {
     return await this.userRepository.findOne({
       where: {
         id,
       },
     });
   }
-  async deleteUser(id: number) {
+  async deleteUser(id: string) {
     return await this.userRepository.delete({ id });
   }
-  async updateUser(id: number, user: UpdateUserDto) {
+  async updateUser(id: string, user: UpdateUserDto) {
     return await this.userRepository.update({ id }, user);
   }
 }
