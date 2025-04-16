@@ -4,11 +4,17 @@ import {
   IsInt,
   MinLength,
   MaxLength,
-  IsPhoneNumber,
   IsOptional,
+  Matches,
+  IsEnum,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+
+export enum Role {
+  Admin = 1,
+  User = 2,
+}
 
 export class UpdateUserDto {
   @ApiPropertyOptional({
@@ -16,7 +22,6 @@ export class UpdateUserDto {
     description: 'Nuevo nombre del usuario (opcional)',
     minLength: 3,
     maxLength: 50,
-    required: false,
   })
   @IsOptional()
   @IsString()
@@ -28,7 +33,6 @@ export class UpdateUserDto {
     example: 'González',
     description: 'Nuevo apellido del usuario (opcional)',
     maxLength: 100,
-    required: false,
   })
   @IsOptional()
   @IsString()
@@ -39,44 +43,41 @@ export class UpdateUserDto {
     example: 'carlos.gonzalez@example.com',
     description: 'Nuevo email del usuario (opcional)',
     format: 'email',
-    required: false,
   })
   @IsOptional()
   @IsEmail()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? value.trim().toLowerCase() : value,
-  )
+  @Transform(({ value }) => (value ? value.trim().toLowerCase() : value))
   email?: string;
 
   @ApiPropertyOptional({
     example: '+5355555555',
-    description: 'Nuevo teléfono del usuario (formato cubano) (opcional)',
-    required: false,
+    description: 'Nuevo teléfono del usuario (opcional)',
   })
   @IsOptional()
-  @IsPhoneNumber('CU')
+  @IsString()
+  @Matches(/^\+?\d{7,15}$/)
   phone?: string;
 
   @ApiPropertyOptional({
-    example: 3,
-    description: 'Nuevo ID de rol (número entero) (opcional)',
-    type: 'integer',
-    required: false,
+    example: 1,
+    description: 'Nuevo ID de rol (1=Admin, 2=User) (opcional)',
+    enum: Role,
   })
   @IsOptional()
   @IsInt()
-  roleId?: number;
+  @IsEnum(Role)
+  roleId?: Role;
 
   @ApiPropertyOptional({
     example: 'NuevaPassword123!',
-    description: 'Nueva contraseña (8-20 caracteres) (opcional)',
+    description: 'Nueva contraseña (8-20 caracteres, con mayúsculas y números)',
     minLength: 8,
     maxLength: 20,
-    required: false,
   })
   @IsOptional()
   @IsString()
   @MinLength(8)
   @MaxLength(20)
+  @Matches(/^(?=.*[A-Z])(?=.*\d).{8,20}$/)
   password?: string;
 }
