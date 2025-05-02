@@ -7,6 +7,7 @@ import {
   IsOptional,
   Matches,
   IsEnum,
+  IsBoolean,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
@@ -80,4 +81,19 @@ export class UpdateUserDto {
   @MaxLength(20)
   @Matches(/^(?=.*[A-Z])(?=.*\d).{8,20}$/)
   password?: string;
+
+  @ApiPropertyOptional({
+    example: true,
+    description: 'Estado de activación del usuario (opcional)',
+    default: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  isActive?: boolean;
+
 }
