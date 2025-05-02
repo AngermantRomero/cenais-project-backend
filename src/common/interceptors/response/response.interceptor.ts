@@ -15,10 +15,19 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
 
     return next.handle().pipe(
       map((data) => {
+        const statusCode = response.statusCode;
+
+        if (statusCode === 204) {
+          return;
+        }
+
+        const message = data?.message || 'Operación exitosa';
+        const payload = data?.data !== undefined ? data.data : data;
+
         return {
-          statusCode: response.statusCode,
-          message: data?.message || 'Operación exitosa',
-          data: data?.data !== undefined ? data.data : data,
+          statusCode,
+          message,
+          data: payload,
         };
       }),
     );
