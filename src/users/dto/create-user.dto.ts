@@ -2,10 +2,10 @@ import {
   IsString,
   IsEmail,
   IsNotEmpty,
-  IsInt,
   MinLength,
   MaxLength,
   IsPhoneNumber,
+  IsUUID,
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -58,14 +58,12 @@ export class CreateUserDto {
   phone: string;
 
   @ApiProperty({
-    example: 2,
-    description: 'ID del rol del usuario (número entero)',
-    type: 'integer',
-    required: true,
+    example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    description: 'UUID del rol',
   })
-  @IsInt()
+  @IsUUID()
   @IsNotEmpty()
-  roleId: number;
+  role: string;
 
   @ApiProperty({
     example: 'Password123!',

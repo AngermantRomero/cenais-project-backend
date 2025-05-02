@@ -19,7 +19,7 @@ import {
 } from '@nestjs/swagger';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UsersService } from './users.service';
-import { User } from './user.entity';
+import { User } from './entities/user.entity';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ParseUUIDPipe } from '@nestjs/common';
 import { ApiStandardArrayResponse } from 'src/common/decorators/api-standard-array-response.decorator';
@@ -40,11 +40,7 @@ export class UsersController {
     description:
       'Retorna una lista completa de todos los usuarios registrados en el sistema',
   })
-  @ApiStandardArrayResponse(
-    UserDto,
-    HttpStatus.OK,
-    'Usuarios listados exitosamente',
-  )
+  @ApiStandardArrayResponse(UserDto, HttpStatus.OK, 'Operación exitosa')
   @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
   @ApiErrorResponse(
     HttpStatus.INTERNAL_SERVER_ERROR,
@@ -85,11 +81,7 @@ export class UsersController {
     format: 'uuid',
     example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
   })
-  @ApiStandardResponse(
-    UserDto,
-    HttpStatus.OK,
-    'Usuario encontrado exitosamente',
-  )
+  @ApiStandardResponse(UserDto, HttpStatus.OK, 'Operación exitosa')
   @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
   @ApiErrorResponse(HttpStatus.BAD_REQUEST, 'Datos inválidos')
   @ApiErrorResponse(
@@ -135,11 +127,7 @@ export class UsersController {
       },
     },
   })
-  @ApiStandardResponse(
-    UserDto,
-    HttpStatus.OK,
-    'Usuario actualizado exitosamente',
-  )
+  @ApiStandardResponse(UserDto, HttpStatus.OK, 'Operación exitosa')
   @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
   @ApiErrorResponse(HttpStatus.BAD_REQUEST, 'Datos inválidos')
   @ApiErrorResponse(HttpStatus.NOT_FOUND, 'Usuario no encontrado')

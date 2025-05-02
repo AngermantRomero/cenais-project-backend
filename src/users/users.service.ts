@@ -4,28 +4,48 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from './user.entity';
+import { User } from './entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DeleteResult } from 'typeorm';
+import { Role } from 'src/roles/entities/roles.entity';
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Role)
+    private roleRepository: Repository<Role>,
   ) {}
 
-  async createUser(user: CreateUserDto): Promise<User> {
+  async createUser(userDto: CreateUserDto): Promise<User> {
     const existingUser = await this.userRepository.findOne({
-      where: { email: user.email },
+      where: { email: userDto.email },
     });
 
     if (existingUser) {
       throw new ConflictException('El email ya está registrado');
     }
 
-    const newUser = this.userRepository.create(user);
+    const role = await this.roleRepository.findOne({
+      where: { id: userDto.role },
+    });
+
+    console.log(role);
+
+    if (!role) {
+      throw new NotFoundException(`El rol con ID ${userDto.role} no existe`);
+    }
+
+    // Separar los datos del usuario, excluyendo el UUID del rol
+    const { role: _, ...rest } = userDto;
+
+    const newUser = this.userRepository.create({
+      ...rest,
+      role,
+    });
+
     return await this.userRepository.save(newUser);
   }
 
@@ -48,19 +68,33 @@ export class UsersService {
     }
     return this.userRepository.delete(id);
   }
-  async updateUser(id: string, user: UpdateUserDto): Promise<User> {
+  async updateUser(id: string, userDto: UpdateUserDto): Promise<User> {
     const existingUser = await this.getUser(id);
 
-    if (user.email && user.email !== existingUser.email) {
+    if (userDto.email && userDto.email !== existingUser.email) {
       const emailExists = await this.userRepository.findOne({
-        where: { email: user.email },
+        where: { email: userDto.email },
       });
       if (emailExists) {
         throw new ConflictException('El email ya está registrado');
       }
     }
 
-    await this.userRepository.update(id, user);
+    let role;
+    if (userDto.role) {
+      role = await this.roleRepository.findOne({ where: { id: userDto.role } });
+      if (!role) {
+        throw new NotFoundException(`El rol con ID ${userDto.role} no existe`);
+      }
+    }
+
+    const { role: _, ...rest } = userDto;
+
+    await this.userRepository.update(id, {
+      ...rest,
+      ...(role && { role }),
+    });
+
     return this.userRepository.findOneByOrFail({ id });
   }
 }

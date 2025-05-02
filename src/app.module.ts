@@ -4,6 +4,7 @@ import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Joi from 'joi';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import * as Joi from 'joi';
       }),
     }),
     UsersModule,
+    RolesModule,
   ],
   controllers: [],
   providers: [
