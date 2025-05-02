@@ -32,10 +32,10 @@ export class UserDto {
   phone: string;
 
   @ApiProperty({
-    example: 1,
-    description: 'ID del rol asociado al usuario',
+    example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    description: 'UUID del rol asociado al usuario',
   })
-  roleId: number;
+  role: string;
 
   @ApiProperty({
     example: true,

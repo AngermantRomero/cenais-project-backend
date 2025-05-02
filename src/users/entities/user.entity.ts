@@ -1,5 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { Role } from '../../roles/entities/roles.entity';
 
 @Entity('users')
 export class User {
@@ -51,12 +58,10 @@ export class User {
   })
   password: string;
 
-  @Column({ type: 'int', nullable: false })
-  @ApiProperty({
-    example: 1,
-    description: 'ID del rol del usuario (ej: 1=Admin, 2=User)',
-  })
-  roleId: number;
+  @ManyToOne(() => Role, { eager: true, nullable: false })
+  @JoinColumn()
+  @ApiProperty({ type: () => Role, description: 'Role asignado al usuario' })
+  role: Role;
 
   @Column({ type: 'boolean', default: true })
   @ApiProperty({
