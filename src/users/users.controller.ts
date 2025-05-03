@@ -27,6 +27,12 @@ import { UserDto } from './dto/user.dto';
 import { ApiErrorResponse } from 'src/common/decorators/api-error-response.decorator';
 import { ApiStandardResponse } from 'src/common/decorators/api-standard-response.decorator';
 import { StandardResponseDto } from 'src/common/dto/response.dto';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RolesGuard } from '../guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RoleName } from 'src/roles/enums/roles.enum';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('users')
 @ApiExtraModels(StandardResponseDto, UserDto)
@@ -34,6 +40,9 @@ import { StandardResponseDto } from 'src/common/dto/response.dto';
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
+  @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleName.ADMINISTRATOR)
   @Get()
   @ApiOperation({
     summary: 'Obtener todos los usuarios',
