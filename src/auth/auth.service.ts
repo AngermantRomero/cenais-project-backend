@@ -30,24 +30,30 @@ export class AuthService {
       ...dto,
       password: hashedPassword,
     });
+    const { password, ...userWithoutPassword } = user;
 
-    return user;
+    return userWithoutPassword;
   }
 
   async login(dto: LoginDto) {
     const user = await this.usersService.findByEmail(dto.email);
-    if (!user || !(await bcrypt.compare(dto.password, user.password))) {
+    if (
+      !user ||
+      !(await bcrypt.compare(dto.password, user.password)) ||
+      !user.isActive
+    ) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
     const payload = { sub: user.id, email: user.email, role: user.role.name };
-    const access_token = await this.jwtService.signAsync(payload);
+    const accessToken = await this.jwtService.signAsync(payload);
 
-    const { password, ...userWithoutPassword } = user;
+    const { password, createdAt, updateAt, ...userWithoutSensibleProperties } =
+      user;
 
     return {
-      ...userWithoutPassword,
-      access_token,
+      ...userWithoutSensibleProperties,
+      accessToken,
     };
   }
 }

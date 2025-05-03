@@ -1,8 +1,9 @@
-import { Controller, Post, Body, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import {
+  ApiBearerAuth,
   ApiBody,
   ApiExtraModels,
   ApiOperation,
@@ -13,6 +14,10 @@ import { UserDto } from 'src/users/dto/user.dto';
 import { ApiStandardResponse } from 'src/common/decorators/api-standard-response.decorator';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { ApiErrorResponse } from 'src/common/decorators/api-error-response.decorator';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/guards/roles.guard';
+import { RoleName } from 'src/roles/enums/roles.enum';
 
 @ApiTags('auth')
 @ApiExtraModels(StandardResponseDto, UserDto)
@@ -20,6 +25,9 @@ import { ApiErrorResponse } from 'src/common/decorators/api-error-response.decor
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /* @ApiBearerAuth('jwt')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleName.ADMINISTRATOR) */
   @Post('register')
   @ApiOperation({ summary: 'Crear un nuevo usuario' })
   @ApiBody({ type: CreateUserDto })

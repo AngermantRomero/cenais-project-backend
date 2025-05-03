@@ -36,13 +36,13 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('users')
 @ApiExtraModels(StandardResponseDto, UserDto)
+/* @ApiBearerAuth('jwt')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleName.ADMINISTRATOR) */
 @Controller('users')
 export class UsersController {
   constructor(private usersService: UsersService) {}
 
-  @ApiBearerAuth('jwt')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleName.ADMINISTRATOR)
   @Get()
   @ApiOperation({
     summary: 'Obtener todos los usuarios',
