@@ -32,8 +32,6 @@ export class UsersService {
       where: { id: userDto.role },
     });
 
-    console.log(role);
-
     if (!role) {
       throw new NotFoundException(`El rol con ID ${userDto.role} no existe`);
     }
@@ -96,5 +94,10 @@ export class UsersService {
     });
 
     return this.userRepository.findOneByOrFail({ id });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    return user;
   }
 }
