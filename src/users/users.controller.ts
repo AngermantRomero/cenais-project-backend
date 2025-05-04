@@ -33,6 +33,8 @@ import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RoleName } from 'src/roles/enums/roles.enum';
 import { ApiBearerAuth } from '@nestjs/swagger';
+import { Query } from '@nestjs/common';
+import { UserFiltersDto } from './dto/user-filters.dto';
 
 @ApiTags('users')
 @ApiExtraModels(StandardResponseDto, UserDto)
@@ -47,7 +49,7 @@ export class UsersController {
   @ApiOperation({
     summary: 'Obtener todos los usuarios',
     description:
-      'Retorna una lista completa de todos los usuarios registrados en el sistema',
+      'Retorna una lista completa de todos los usuarios registrados en el sistema. Se pueden filtrar los resultados por nombre, apellido, role y estado activo.',
   })
   @ApiStandardArrayResponse(UserDto, HttpStatus.OK, 'Operación exitosa')
   @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
@@ -55,8 +57,8 @@ export class UsersController {
     HttpStatus.INTERNAL_SERVER_ERROR,
     'Error interno del servidor',
   )
-  async getUsers(): Promise<User[]> {
-    return this.usersService.getUsers();
+  async getUsers(@Query() filters: UserFiltersDto): Promise<User[]> {
+    return this.usersService.getUsers(filters);
   }
 
   @Post()
