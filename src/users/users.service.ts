@@ -10,6 +10,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DeleteResult } from 'typeorm';
 import { Role } from 'src/roles/entities/roles.entity';
+import { UserFiltersDto } from './dto/user-filters.dto';
 @Injectable()
 export class UsersService {
   constructor(
@@ -47,8 +48,31 @@ export class UsersService {
     return await this.userRepository.save(newUser);
   }
 
-  async getUsers(): Promise<User[]> {
-    return await this.userRepository.find();
+  async getUsers(filters: UserFiltersDto): Promise<User[]> {
+    const { name, lastName, role, isActive } = filters;
+    const query = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role');
+
+    if (name) {
+      query.andWhere('user.name LIKE :name', { name: `%${name}%` });
+    }
+    if (lastName) {
+      query.andWhere('user.lastName LIKE :lastName', {
+        lastName: `%${lastName}%`,
+      });
+    }
+    if (role) {
+      query.andWhere('role.name = :role', { role });
+    }
+
+    if (isActive !== undefined) {
+      query.andWhere('user.isActive = :isActive', {
+        isActive: isActive === 'true',
+      });
+    }
+
+    return query.getMany();
   }
 
   async getUser(id: string): Promise<User> {
