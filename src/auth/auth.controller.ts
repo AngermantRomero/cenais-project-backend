@@ -18,6 +18,7 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { RoleName } from 'src/roles/enums/roles.enum';
+import { ActivateAccountDto } from './dto/activate-account.dto';
 
 @ApiTags('auth')
 @ApiExtraModels(StandardResponseDto, UserDto)
@@ -50,5 +51,19 @@ export class AuthController {
   @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'Credenciales inválidas')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('activate')
+  @ApiOperation({ summary: 'Activar cuenta y establecer contraseña' })
+  @ApiBody({ type: ActivateAccountDto })
+  @ApiStandardResponse(UserDto, HttpStatus.CREATED, 'Operación exitosa')
+  @ApiErrorResponse(HttpStatus.CONFLICT, 'El email ya existe')
+  @ApiErrorResponse(HttpStatus.BAD_REQUEST, 'Datos inválidos')
+  @ApiErrorResponse(
+    HttpStatus.INTERNAL_SERVER_ERROR,
+    'Error interno del servidor',
+  )
+  async activate(@Body() dto: ActivateAccountDto) {
+    return this.authService.activateAccount(dto.token, dto.password);
   }
 }
