@@ -20,10 +20,10 @@ export class SitiosService {
 
   async create(createSitioDto: CreateSitioDto): Promise<Sitio> {
     const provincia = await this.provinciaRepository.findOneBy({
-      id: createSitioDto.Provincias_idProvincia,
+      id: createSitioDto.idProvincia,
     });
     const codigo = await this.codigoRepository.findOneBy({
-      id: createSitioDto.Codigos_idCodigo,
+      id: createSitioDto.Codigo,
     });
     if (!provincia || !codigo) {
       throw new NotFoundException('Provincia o Código no encontrado');
