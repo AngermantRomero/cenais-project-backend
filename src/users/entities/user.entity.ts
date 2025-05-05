@@ -63,11 +63,11 @@ export class User {
   @ApiProperty({ type: () => Role, description: 'Role asignado al usuario' })
   role: Role;
 
-  @Column({ type: 'boolean', default: true })
+  @Column({ type: 'boolean', default: false })
   @ApiProperty({
     example: true,
     description: 'Indica si el usuario está activo',
-    default: true,
+    default: false,
   })
   isActive: boolean;
 
