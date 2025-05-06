@@ -6,7 +6,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Joi from 'joi';
 import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
-
+import { SitesModule } from './sites/sites.module';
+import { ProvinceModule } from './provinces/provinces.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -32,13 +33,15 @@ import { AuthModule } from './auth/auth.module';
         database: config.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
+        autoLoadEntities: true,
       }),
     }),
     AuthModule,
     RolesModule,
     UsersModule,
+    SitesModule,
+    ProvinceModule,
   ],
-  controllers: [],
   providers: [
     {
       provide: APP_PIPE,

@@ -23,7 +23,6 @@ export class CreateUserDto {
   @MinLength(3)
   @MaxLength(50)
   name: string;
-
   @ApiProperty({
     example: 'Pérez',
     description: 'Apellido del usuario',
@@ -34,7 +33,6 @@ export class CreateUserDto {
   @IsNotEmpty()
   @MaxLength(100)
   lastName: string;
-
   @ApiProperty({
     example: 'juan.perez@example.com',
     description: 'Email del usuario (único)',
@@ -47,9 +45,8 @@ export class CreateUserDto {
     typeof value === 'string' ? value.trim().toLowerCase() : value,
   )
   email: string;
-
   @ApiProperty({
-    example: '+5351234567',
+    example: '+5300000000',
     description: 'Teléfono del usuario (formato cubano)',
     required: true,
   })
@@ -61,8 +58,8 @@ export class CreateUserDto {
     example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
     description: 'UUID del rol',
   })
-  @IsUUID()
   @IsNotEmpty()
+  @IsUUID()
   role: string;
 
   @ApiProperty({
