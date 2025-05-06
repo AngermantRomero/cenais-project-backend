@@ -9,11 +9,14 @@ import { DeleteResult } from 'typeorm';
 import { Sites } from './entities/sites.entity';
 import { CreateSiteDto } from './dto/create-site.dto';
 import { UpdateSitesDto } from './dto/update-site.dto';
+import { Province } from 'src/provinces/entities/province.entity';
 @Injectable()
 export class SitesService {
   constructor(
     @InjectRepository(Sites)
     private sitesRepository: Repository<Sites>,
+    @InjectRepository(Province)
+    private provinceRepository: Repository<Province>,
   ) {}
 
   async createSite(siteDto: CreateSiteDto): Promise<Sites> {
@@ -25,7 +28,22 @@ export class SitesService {
       throw new ConflictException('El sitio ya está registrado');
     }
 
-    const newSite = this.sitesRepository.create(siteDto);
+    const province = await this.provinceRepository.findOne({
+      where: { id: siteDto.province },
+    });
+
+    if (!province) {
+      throw new NotFoundException(
+        `La provincia  con ID ${siteDto.province} no existe`,
+      );
+    }
+
+    const { province: _, ...rest } = siteDto;
+
+    const newSite = this.sitesRepository.create({
+      ...rest,
+      province,
+    });
 
     return await this.sitesRepository.save(newSite);
   }

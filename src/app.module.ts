@@ -7,7 +7,7 @@ import * as Joi from 'joi';
 import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
 import { SitesModule } from './sites/sites.module';
-
+import { ProvinceModule } from './provinces/provinces.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -40,6 +40,7 @@ import { SitesModule } from './sites/sites.module';
     RolesModule,
     UsersModule,
     SitesModule,
+    ProvinceModule,
   ],
   providers: [
     {

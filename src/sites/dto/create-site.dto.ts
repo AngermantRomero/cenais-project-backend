@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, MaxLength, IsUUID } from 'class-validator';
 
 export class CreateSiteDto {
   @ApiProperty({
@@ -25,4 +25,12 @@ export class CreateSiteDto {
   @IsString({ message: 'El código debe ser una cadena de texto válida' })
   @IsNotEmpty({ message: 'El ID de código es requerido' })
   code: string;
+
+  @ApiProperty({
+    example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    description: 'UUID de la Provincia',
+  })
+  @IsNotEmpty()
+  @IsUUID()
+  province: string;
 }

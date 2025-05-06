@@ -1,5 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { Province } from 'src/provinces/entities/province.entity';
 
 @Entity('sites')
 export class Sites {
@@ -23,4 +30,12 @@ export class Sites {
   })
   @Column({ type: 'varchar', length: 45 })
   code: string;
+
+  @ApiProperty({
+    example: 'MGV',
+    description: '',
+  })
+  @ManyToOne(() => Province, (province) => province.sites)
+  @JoinColumn({ name: 'province_id' })
+  province: Province;
 }
