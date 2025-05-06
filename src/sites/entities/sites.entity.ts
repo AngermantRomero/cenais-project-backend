@@ -1,26 +1,26 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
-import { Provincia } from './province.entity';
-import { Codigo } from './codes.entity';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { ApiProperty } from '@nestjs/swagger';
 
-@Entity()
-export class Sitio {
-  @PrimaryGeneratedColumn({ name: 'IdSitio' })
-  id: number;
+@Entity('sites')
+export class Sites {
+  @PrimaryGeneratedColumn('uuid')
+  @ApiProperty({
+    example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    description: 'ID único generado automáticamente (UUID)',
+  })
+  id: string;
 
+  @ApiProperty({
+    example: 'Manicaragua',
+    description: 'Nombre de la localidad del sitio',
+  })
   @Column({ type: 'varchar', length: 45 })
-  localidad: string;
+  locality: string;
 
-  @ManyToOne(() => Provincia, (provincia) => provincia.sitios)
-  @JoinColumn({ name: 'Provincias_idProvincia' })
-  provincia: Provincia;
-
-  @ManyToOne(() => Codigo, (codigo) => codigo.sitios)
-  @JoinColumn({ name: 'Codigos_idCodigo' })
-  codigo: Codigo;
+  @ApiProperty({
+    example: 'MGV',
+    description: 'Codigo del sitio',
+  })
+  @Column({ type: 'varchar', length: 45 })
+  code: string;
 }

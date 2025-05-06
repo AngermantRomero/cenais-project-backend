@@ -6,7 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Joi from 'joi';
 import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
-import { SitiosModule } from './sites/sites.module';
+import { SitesModule } from './sites/sites.module';
 
 @Module({
   imports: [
@@ -39,7 +39,7 @@ import { SitiosModule } from './sites/sites.module';
     AuthModule,
     RolesModule,
     UsersModule,
-    SitiosModule,
+    SitesModule,
   ],
   providers: [
     {

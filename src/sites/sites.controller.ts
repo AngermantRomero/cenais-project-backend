@@ -1,113 +1,180 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
+  Controller,
+  Post,
+  Get,
   Param,
-  Put,
   Delete,
-  NotFoundException,
+  Patch,
   HttpStatus,
+  HttpCode,
 } from '@nestjs/common';
-import { SitiosService } from './sites.service';
-import { CreateSitioDto } from './dto/create-sites.dto';
-import { UpdateSitioDto } from './dto/update-sites.dto';
 import {
   ApiTags,
   ApiOperation,
-  ApiResponse,
-  ApiParam,
   ApiBody,
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiNotFoundResponse,
-  ApiBadRequestResponse,
+  ApiParam,
+  ApiExtraModels,
+  ApiResponse,
 } from '@nestjs/swagger';
-@ApiTags('Sitios')
-@Controller('sitios')
-export class SitiosController {
-  constructor(private readonly sitiosService: SitiosService) {}
-  @Post()
-  @ApiOperation({
-    summary: 'Crear un nuevo sitio',
-    description: 'Registra un nuevo sitio en el sistema',
-  })
-  @ApiCreatedResponse({
-    description: 'Sitio creado exitosamente',
-    type: CreateSitioDto,
-  })
-  @ApiBadRequestResponse({ description: 'Datos de entrada inválidos' })
-  @ApiBody({ type: CreateSitioDto })
-  create(@Body() createSitioDto: CreateSitioDto) {
-    return this.sitiosService.create(createSitioDto);
-  }
+import { ParseUUIDPipe } from '@nestjs/common';
+import { ApiStandardArrayResponse } from 'src/common/decorators/api-standard-array-response.decorator';
+import { ApiErrorResponse } from 'src/common/decorators/api-error-response.decorator';
+import { ApiStandardResponse } from 'src/common/decorators/api-standard-response.decorator';
+import { StandardResponseDto } from 'src/common/dto/response.dto';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RolesGuard } from '../guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RoleName } from 'src/roles/enums/roles.enum';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { Query } from '@nestjs/common';
+import { SitesService } from './sites.service';
+import { SitesDto } from './dto/site.dto';
+import { Sites } from './entities/sites.entity';
+import { CreateSiteDto } from './dto/create-site.dto';
+import { UpdateSitesDto } from './dto/update-site.dto';
+
+@ApiTags('sites')
+@ApiExtraModels(StandardResponseDto, SitesDto)
+/* @ApiBearerAuth('jwt')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleName.ADMINISTRATOR) */
+@Controller('sites')
+export class SitesController {
+  constructor(private sitesService: SitesService) {}
+
   @Get()
   @ApiOperation({
     summary: 'Obtener todos los sitios',
-    description: 'Retorna una lista completa de sitios registrados',
+    description:
+      'Retorna una lista completa de todos los sitios registrados en el sistema. Se pueden filtrar los resultados por nombre, apellido, role y estado activo.',
   })
-  @ApiOkResponse({
-    description: 'Lista de sitios obtenida exitosamente',
-    type: [CreateSitioDto],
-  })
-  @ApiResponse({
-    status: HttpStatus.INTERNAL_SERVER_ERROR,
-    description: 'Error interno del servidor',
-  })
-  findAll() {
-    return this.sitiosService.findAll();
+  @ApiStandardArrayResponse(SitesDto, HttpStatus.OK, 'Operación exitosa')
+  @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
+  @ApiErrorResponse(
+    HttpStatus.INTERNAL_SERVER_ERROR,
+    'Error interno del servidor',
+  )
+  async getSites(): Promise<Sites[]> {
+    return this.sitesService.getSites();
   }
+
+  @Post()
+  @ApiOperation({ summary: 'Crear un nuevo sitio' })
+  @ApiBody({ type: CreateSiteDto })
+  @ApiStandardResponse(SitesDto, HttpStatus.CREATED, 'Operación exitosa')
+  @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
+  @ApiErrorResponse(HttpStatus.CONFLICT, 'El sitio ya existe')
+  @ApiErrorResponse(HttpStatus.BAD_REQUEST, 'Datos inválidos')
+  @ApiErrorResponse(
+    HttpStatus.INTERNAL_SERVER_ERROR,
+    'Error interno del servidor',
+  )
+  async createSite(@Body() newSite: CreateSiteDto) {
+    return this.sitesService.createSite(newSite);
+  }
+
   @Get(':id')
   @ApiOperation({
-    summary: 'Obtener un sitio específico',
-    description: 'Recupera los detalles de un sitio por su ID',
+    summary: 'Obtener sitio por ID',
+    description:
+      'Recupera los detalles completos de un sitio específico usando su Id ',
   })
-  @ApiParam({ name: 'id', type: Number, description: 'ID del sitio' })
-  @ApiOkResponse({
-    description: 'Sitio encontrado',
-    type: CreateSitioDto,
+  @ApiParam({
+    name: 'id',
+    type: 'string',
+    format: 'uuid',
+    example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
   })
-  @ApiNotFoundResponse({ description: 'Sitio no encontrado' })
-  async findOne(@Param('id') id: string) {
-    const sitio = await this.sitiosService.findOne(+id);
-    if (!sitio) {
-      throw new NotFoundException('Sitio no encontrado');
-    }
-    return sitio;
+  @ApiStandardResponse(SitesDto, HttpStatus.OK, 'Operación exitosa')
+  @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
+  @ApiErrorResponse(HttpStatus.BAD_REQUEST, 'Datos inválidos')
+  @ApiErrorResponse(
+    HttpStatus.INTERNAL_SERVER_ERROR,
+    'Error interno del servidor',
+  )
+  async getSite(@Param('id', ParseUUIDPipe) id: string): Promise<Sites> {
+    return this.sitesService.getSite(id);
   }
-  @Put(':id')
+
+  @Patch(':id')
   @ApiOperation({
     summary: 'Actualizar un sitio',
-    description: 'Actualiza los datos de un sitio existente',
+    description:
+      'Actualiza parcialmente los datos de un sitio existente. Campos opcionales.',
   })
   @ApiParam({
     name: 'id',
-    type: Number,
-    description: 'ID del sitio a actualizar',
+    required: true,
+    description: 'ID del sitio a actualizar en formato UUID',
+    example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    type: 'string',
   })
-  @ApiBody({ type: UpdateSitioDto })
-  @ApiOkResponse({
-    description: 'Sitio actualizado exitosamente',
-    type: UpdateSitioDto,
+  @ApiBody({
+    type: UpdateSitesDto,
+    examples: {
+      'Actualizar localidad': {
+        value: {
+          locality: 'Nuevo nombre',
+        },
+      },
+      'Actualizar code': {
+        value: {
+          code: 'Nuevo código',
+        },
+      },
+      'Actualizar múltiples campos': {
+        value: {
+          localidad: 'Nombre nuevo',
+          code: 'Nuevo código',
+        },
+      },
+    },
   })
-  @ApiNotFoundResponse({ description: 'Sitio no encontrado' })
-  @ApiBadRequestResponse({ description: 'Datos de entrada inválidos' })
-  update(@Param('id') id: string, @Body() updateSitioDto: UpdateSitioDto) {
-    return this.sitiosService.update(+id, updateSitioDto);
+  @ApiStandardResponse(SitesDto, HttpStatus.OK, 'Operación exitosa')
+  @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
+  @ApiErrorResponse(HttpStatus.BAD_REQUEST, 'Datos inválidos')
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, 'Sitio no encontrado')
+  @ApiErrorResponse(HttpStatus.CONFLICT, 'El sitio ya existe')
+  @ApiErrorResponse(
+    HttpStatus.INTERNAL_SERVER_ERROR,
+    'Error interno del servidor',
+  )
+  async updateSite(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() site: UpdateSitesDto,
+  ): Promise<Sites> {
+    return this.sitesService.updateSite(id, site);
   }
+
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Eliminar un sitio',
-    description: 'Elimina permanentemente un sitio del sistema',
+    description:
+      'Elimina permanentemente un sitio del sistema. Operación irreversible.',
   })
   @ApiParam({
     name: 'id',
-    type: Number,
-    description: 'ID del sitio a eliminar',
+    type: 'string',
+    format: 'uuid',
+    example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    description: 'ID único del sitio en formato UUIDv4',
   })
-  @ApiOkResponse({ description: 'Sitio eliminado exitosamente' })
-  @ApiNotFoundResponse({ description: 'Sitio no encontrado' })
-  remove(@Param('id') id: string) {
-    return this.sitiosService.remove(+id);
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'Sitio eliminado exitosamente - No devuelve contenido',
+  })
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, 'Sitio no encontrado')
+  @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
+  @ApiErrorResponse(HttpStatus.BAD_REQUEST, 'Datos inválidos')
+  @ApiErrorResponse(
+    HttpStatus.INTERNAL_SERVER_ERROR,
+    'Error interno del servidor',
+  )
+  async deleteUser(@Param('id', ParseUUIDPipe) id: string) {
+    await this.sitesService.deleteSite(id);
+    return null;
   }
 }

@@ -1,56 +1,61 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Sitio } from './entities/sites.entity';
-import { CreateSitioDto } from './dto/create-sites.dto';
-import { UpdateSitioDto } from './dto/update-sites.dto';
-import { Provincia } from './entities/province.entity';
-import { Codigo } from './entities/codes.entity';
-
+import { DeleteResult } from 'typeorm';
+import { Sites } from './entities/sites.entity';
+import { CreateSiteDto } from './dto/create-site.dto';
+import { UpdateSitesDto } from './dto/update-site.dto';
 @Injectable()
-export class SitiosService {
+export class SitesService {
   constructor(
-    @InjectRepository(Sitio)
-    private sitioRepository: Repository<Sitio>,
-    @InjectRepository(Provincia)
-    private provinciaRepository: Repository<Provincia>,
-    @InjectRepository(Codigo)
-    private codigoRepository: Repository<Codigo>,
+    @InjectRepository(Sites)
+    private sitesRepository: Repository<Sites>,
   ) {}
 
-  async create(createSitioDto: CreateSitioDto): Promise<Sitio> {
-    const provincia = await this.provinciaRepository.findOneBy({
-      id: createSitioDto.idProvincia,
+  async createSite(siteDto: CreateSiteDto): Promise<Sites> {
+    const existingSite = await this.sitesRepository.findOne({
+      where: { code: siteDto.code, locality: siteDto.locality },
     });
-    const codigo = await this.codigoRepository.findOneBy({
-      id: createSitioDto.Codigo,
-    });
-    if (!provincia || !codigo) {
-      throw new NotFoundException('Provincia o Código no encontrado');
+
+    if (existingSite) {
+      throw new ConflictException('El sitio ya está registrado');
     }
-    const sitio = this.sitioRepository.create(createSitioDto);
-    return this.sitioRepository.save(sitio);
+
+    const newSite = this.sitesRepository.create(siteDto);
+
+    return await this.sitesRepository.save(newSite);
   }
 
-  async findAll(): Promise<Sitio[]> {
-    return this.sitioRepository.find({
-      relations: ['provincia', 'codigo'],
-    });
+  async getSites(): Promise<Sites[]> {
+    return this.sitesRepository.find();
   }
 
-  async findOne(id: number): Promise<Sitio> {
-    return this.sitioRepository.findOneOrFail({
-      where: { id },
-      relations: ['provincia', 'codigo'],
-    });
+  async getSite(id: string): Promise<Sites> {
+    const site = await this.sitesRepository.findOne({ where: { id } });
+    if (!site) {
+      throw new NotFoundException('Sitio no encontrado');
+    }
+    return site;
   }
 
-  async update(id: number, updateSitioDto: UpdateSitioDto): Promise<Sitio> {
-    await this.sitioRepository.update(id, updateSitioDto);
-    return this.findOne(id);
+  async deleteSite(id: string): Promise<DeleteResult> {
+    const site = await this.sitesRepository.findOne({ where: { id } });
+    if (!site) {
+      throw new NotFoundException('Sitio no encontrado');
+    }
+    return this.sitesRepository.delete(id);
   }
 
-  async remove(id: number): Promise<void> {
-    await this.sitioRepository.delete(id);
+  async updateSite(id: string, siteDto: UpdateSitesDto): Promise<Sites> {
+    const existingSite = await this.getSite(id);
+    if (!existingSite) {
+      throw new NotFoundException('Sitio no encontrado');
+    }
+    Object.assign(existingSite, siteDto);
+    return this.sitesRepository.save(existingSite);
   }
 }
