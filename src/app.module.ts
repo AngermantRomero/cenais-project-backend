@@ -8,6 +8,8 @@ import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
 import { SitesModule } from './sites/sites.module';
 import { ProvinceModule } from './provinces/provinces.module';
+import { EquipmentsModule } from './equipments/equipment.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -41,6 +43,7 @@ import { ProvinceModule } from './provinces/provinces.module';
     UsersModule,
     SitesModule,
     ProvinceModule,
+    EquipmentsModule,
   ],
   providers: [
     {
