@@ -47,7 +47,7 @@ export class AuthController {
   @Post('login')
   @ApiOperation({ summary: 'Iniciar sesión en el sistema' })
   @ApiBody({ type: LoginDto })
-  @ApiStandardResponse(UserDto, HttpStatus.CREATED, 'Operación exitosa')
+  @ApiStandardResponse(UserDto, HttpStatus.OK, 'Operación exitosa')
   @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'Credenciales inválidas')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
