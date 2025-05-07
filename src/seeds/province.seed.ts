@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { Province } from '../provinces/entities/province.entity';
+import { Province } from 'src/provinces/entities/province.entity';
 
 const provinces = [
   { name: 'Pinar del Río' },
@@ -26,6 +26,7 @@ export async function seedProvinces(dataSource: DataSource) {
     const exists = await repo.findOneBy({ name: province.name });
     if (!exists) {
       await repo.save(repo.create(province));
+      console.log('✅ Provincia creada', province.name);
     }
   }
 }

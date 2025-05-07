@@ -2,13 +2,17 @@ import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { databaseConfig } from '../config/database.config';
 import { seedProvinces } from './province.seed';
+import { seedRoles } from './roles.seed';
+import { seedAdminUser } from './adminUser.seed';
 
 async function runSeed() {
   const dataSource = new DataSource(databaseConfig);
   await dataSource.initialize();
   console.log('Base de datos conectada');
 
-  await seedProvinces(dataSource); // Aquí puedes llamar otros seeds también
+  await seedProvinces(dataSource);
+  await seedRoles(dataSource);
+  await seedAdminUser(dataSource);
 
   console.log('🌱 Seeding completado');
   await dataSource.destroy();
