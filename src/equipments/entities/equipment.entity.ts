@@ -2,13 +2,13 @@ import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 
 @Entity()
-export class Equipo {
+export class Equipment {
   @ApiProperty({
     example: '550e8400-e29b-41d4-a716-446655440000',
     description: 'ID autogenerado',
   })
   @PrimaryGeneratedColumn('uuid')
-  idEquipo: string;
+  id: string;
 
   @ApiProperty({ example: 'SN-12345', description: 'Número de serie único' })
   @Column({ length: 45, unique: true })
@@ -23,5 +23,5 @@ export class Equipo {
     description: 'Fecha de inicio de explotación',
   })
   @Column({ name: 'start_of_operation', type: 'date' })
-  StartOfOperation: Date;
+  startOfOperation: Date;
 }

@@ -1,7 +1,7 @@
 import { IsString, IsDateString, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CreateEquipoDto {
+export class CreateEquipmentDto {
   @ApiProperty({
     example: 'SN-12345',
     description: 'Número de serie único',
@@ -26,5 +26,5 @@ export class CreateEquipoDto {
     required: false,
   })
   @IsDateString()
-  StartOfOperation?: Date;
+  startOfOperation?: Date;
 }

@@ -6,7 +6,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Joi from 'joi';
 import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
-import { EquiposModule } from './equipement/equipement.module';
+import { EquipmentsModule } from './equipments/equipment.module';
 
 @Module({
   imports: [
@@ -39,7 +39,7 @@ import { EquiposModule } from './equipement/equipement.module';
     AuthModule,
     RolesModule,
     UsersModule,
-    EquiposModule,
+    EquipmentsModule,
   ],
   controllers: [],
   providers: [
