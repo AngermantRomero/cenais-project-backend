@@ -6,6 +6,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import * as Joi from 'joi';
 import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
+import { SitesModule } from './sites/sites.module';
+import { ProvinceModule } from './provinces/provinces.module';
+import { EquipmentsModule } from './equipments/equipment.module';
 
 @Module({
   imports: [
@@ -38,8 +41,10 @@ import { AuthModule } from './auth/auth.module';
     AuthModule,
     RolesModule,
     UsersModule,
+    SitesModule,
+    ProvinceModule,
+    EquipmentsModule,
   ],
-  controllers: [],
   providers: [
     {
       provide: APP_PIPE,
