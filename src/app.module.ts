@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { SitesModule } from './sites/sites.module';
 import { ProvinceModule } from './provinces/provinces.module';
 import { EquipmentsModule } from './equipments/equipment.module';
+import { MakerModule } from './maker/maker.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { EquipmentsModule } from './equipments/equipment.module';
     SitesModule,
     ProvinceModule,
     EquipmentsModule,
+    MakerModule,
   ],
   providers: [
     {
