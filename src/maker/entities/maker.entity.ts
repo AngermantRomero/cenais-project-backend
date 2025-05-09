@@ -4,9 +4,10 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
-import { Country } from './country.entity';
-
+import { Country } from '../../country/entities/country.entity';
+import { Model } from 'src/model/entities/model.entity';
 @Entity()
 export class Maker {
   @PrimaryGeneratedColumn('uuid')
@@ -18,7 +19,10 @@ export class Maker {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @ManyToOne(() => Country)
-  @JoinColumn({ name: 'Country_idCountry' })
+  @ManyToOne(() => Country, (country) => country.makers)
+  @JoinColumn({ name: 'country_id' })
   country: Country;
+
+  @OneToMany(() => Model, (model) => model.maker)
+  models: Model[];
 }
