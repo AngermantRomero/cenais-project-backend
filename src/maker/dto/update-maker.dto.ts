@@ -1,9 +1,14 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateMakerDto } from './create-maker.dto';
-import { IsOptional, IsUUID } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateMakerDto extends PartialType(CreateMakerDto) {
+  @ApiPropertyOptional({
+    example: 'Japón',
+    description: 'Nuevo nombre del país asociado',
+  })
   @IsOptional()
-  @IsUUID('4')
-  countryId?: string;
+  @IsString()
+  countryName?: string;
 }

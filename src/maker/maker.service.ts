@@ -2,10 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
 import { Maker } from './entities/maker.entity';
-import { Country } from './entities/country.entity';
+import { Country } from '../country/entities/country.entity';
 import { CreateMakerDto } from './dto/create-maker.dto';
 import { UpdateMakerDto } from './dto/update-maker.dto';
 import { MakerResponseDto } from './dto/maker.dto';
+import { MakerFiltersDto } from './dto/maker-filters.dto';
 
 @Injectable()
 export class MakerService {
@@ -16,35 +17,52 @@ export class MakerService {
     private countryRepository: Repository<Country>,
   ) {}
 
-  async create(createMakerDto: CreateMakerDto): Promise<Maker> {
-    const normalizedCountryName = createMakerDto.countryName
-      .trim()
-      .toLowerCase();
-    let country = await this.countryRepository.findOne({
-      where: {
-        country: ILike(`%${normalizedCountryName}%`),
-      },
+  async create(createMakerDto: CreateMakerDto): Promise<MakerResponseDto> {
+    const country = await this.handleCountry(createMakerDto.countryName);
+
+    const maker = this.makerRepository.create({
+      brand: createMakerDto.brand.trim(),
+      description: createMakerDto.description.trim(),
+      country,
     });
+
+    const savedMaker = await this.makerRepository.save(maker);
+    return this.toResponseDto(savedMaker);
+  }
+
+  private async handleCountry(countryName: string): Promise<Country> {
+    const normalizedName = countryName.trim().toLowerCase();
+    let country = await this.countryRepository.findOne({
+      where: { countryName: ILike(`%${normalizedName}%`) },
+    });
+
     if (!country) {
       country = this.countryRepository.create({
-        country: createMakerDto.countryName.trim(),
+        countryName: countryName.trim(),
       });
       country = await this.countryRepository.save(country);
     }
-
-    const maker = this.makerRepository.create({
-      brand: createMakerDto.brand?.trim(),
-      description: createMakerDto.description?.trim(),
-      country: { idCountry: country.idCountry },
-    });
-
-    return this.makerRepository.save(maker);
+    return country;
   }
+  async findAll(filters?: MakerFiltersDto): Promise<MakerResponseDto[]> {
+    const query = this.makerRepository
+      .createQueryBuilder('maker')
+      .leftJoinAndSelect('maker.country', 'country');
 
-  async findAll(): Promise<MakerResponseDto[]> {
-    const makers = await this.makerRepository.find({
-      relations: ['country'],
-    });
+    if (filters?.brand) {
+      query.andWhere('maker.brand LIKE :brand', {
+        brand: `%${filters.brand}%`,
+      });
+    }
+
+    if (filters?.countryId) {
+      query.andWhere('country.id = :countryId', {
+        countryId: filters.countryId,
+      });
+    }
+
+    const makers = await query.getMany();
+
     return makers.map((maker) => this.toResponseDto(maker));
   }
 
@@ -68,30 +86,14 @@ export class MakerService {
     const maker = await this.findOneInternal(id);
 
     if (updateMakerDto.countryName) {
-      const normalizedCountryName = updateMakerDto.countryName
-        .trim()
-        .toLowerCase();
-
-      let country = await this.countryRepository.findOne({
-        where: { country: ILike(normalizedCountryName) },
-      });
-
-      if (!country) {
-        country = this.countryRepository.create({
-          country: updateMakerDto.countryName.trim(),
-        });
-        country = await this.countryRepository.save(country);
-      }
-
-      maker.country = country;
+      maker.country = await this.handleCountry(updateMakerDto.countryName);
     }
 
     if (updateMakerDto.brand !== undefined) {
-      maker.brand = updateMakerDto.brand?.trim();
+      maker.brand = updateMakerDto.brand.trim();
     }
-
     if (updateMakerDto.description !== undefined) {
-      maker.description = updateMakerDto.description?.trim();
+      maker.description = updateMakerDto.description.trim();
     }
 
     const updatedMaker = await this.makerRepository.save(maker);
@@ -119,14 +121,14 @@ export class MakerService {
 
   private async validateCountry(countryId: string): Promise<Country> {
     const country = await this.countryRepository.findOne({
-      where: { idCountry: countryId },
+      where: { id: countryId },
     });
 
     if (!country) {
       throw new NotFoundException(`Country with ID ${countryId} not found`);
     }
 
-    return country; // Debe retornar la entidad Country, no el ID
+    return country;
   }
 
   private toResponseDto(maker: Maker): MakerResponseDto {
@@ -135,8 +137,8 @@ export class MakerService {
       brand: maker.brand,
       description: maker.description,
       country: {
-        idCountry: maker.country.idCountry,
-        country: maker.country.country,
+        id: maker.country.id,
+        countryName: maker.country.countryName,
       },
     };
   }

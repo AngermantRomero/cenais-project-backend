@@ -1,4 +1,4 @@
-import { IsString, MaxLength, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsString, MaxLength, IsNotEmpty } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateMakerDto {
@@ -7,18 +7,18 @@ export class CreateMakerDto {
     description: 'Nombre comercial del fabricante',
     maxLength: 45,
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @MaxLength(45)
-  brand?: string;
+  brand: string;
 
   @ApiPropertyOptional({
     example: 'Fabricante de vehículos japoneses',
     description: 'Descripción detallada del fabricante',
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  description?: string;
+  description: string;
 
   @ApiProperty({
     example: 'Japón',
