@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { Country } from '../../country/entities/country.entity';
 import { Model } from 'src/model/entities/model.entity';
+import { Equipment } from 'src/equipments/entities/equipment.entity';
 @Entity()
 export class Maker {
   @PrimaryGeneratedColumn('uuid')
@@ -25,4 +26,7 @@ export class Maker {
 
   @OneToMany(() => Model, (model) => model.maker)
   models: Model[];
+
+  @OneToMany(() => Equipment, (equipment) => equipment.maker)
+  equipement: Equipment[];
 }

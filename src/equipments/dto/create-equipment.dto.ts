@@ -1,30 +1,37 @@
-import { IsString, IsDateString, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { IsDateString, IsNotEmpty, IsString, Length } from 'class-validator';
 
 export class CreateEquipmentDto {
-  @ApiProperty({
-    example: 'SN-12345',
-    description: 'Número de serie único',
-    required: true,
-  })
-  @IsString()
+  @ApiProperty({ example: 'SN-12345', description: 'Número de serie único' })
   @IsNotEmpty()
+  @IsString()
+  @Length(1, 45)
   serialNumber: string;
 
-  @ApiProperty({
-    example: 'INV-789',
-    description: 'Número de inventario único',
-    required: true,
-  })
-  @IsString()
+  @ApiProperty({ example: 'INV-789', description: 'Número de inventario' })
   @IsNotEmpty()
+  @IsString()
+  @Length(1, 45)
   inventoryNumber: string;
 
-  @ApiProperty({
-    example: '2023-01-15',
-    description: 'Fecha de inicio de explotación',
-    required: false,
-  })
+  @ApiProperty({ example: '2023-01-15', description: 'Fecha de inicio' })
+  @IsNotEmpty()
   @IsDateString()
-  startOfOperation?: Date;
+  startOfOperation: Date;
+
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'ID del fabricante',
+  })
+  @IsNotEmpty()
+  @IsString()
+  makerId: string;
+
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'ID del modelo',
+  })
+  @IsNotEmpty()
+  @IsString()
+  modelId: string;
 }

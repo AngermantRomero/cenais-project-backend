@@ -4,8 +4,10 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Maker } from '../../maker/entities/maker.entity';
+import { Equipment } from 'src/equipments/entities/equipment.entity';
 
 @Entity()
 export class Model {
@@ -24,4 +26,7 @@ export class Model {
 
   @Column()
   makerId: string;
+
+  @OneToMany(() => Equipment, (equipment) => equipment.maker)
+  equipement: Equipment[];
 }
