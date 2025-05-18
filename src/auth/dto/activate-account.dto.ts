@@ -4,7 +4,8 @@ import { IsString, MinLength } from 'class-validator';
 export class ActivateAccountDto {
   @ApiProperty({
     example: 'Token123!',
-    description: 'Token de activación de cuenta',
+    description:
+      'Token de activación de cuenta o de recuperación de contraseña',
     required: true,
   })
   @IsString()
