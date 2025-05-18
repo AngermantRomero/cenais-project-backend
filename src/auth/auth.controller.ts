@@ -1,4 +1,11 @@
-import { Controller, Post, Body, HttpStatus, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  HttpStatus,
+  UseGuards,
+  HttpCode,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -7,6 +14,7 @@ import {
   ApiBody,
   ApiExtraModels,
   ApiOperation,
+  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { StandardResponseDto } from 'src/common/dto/response.dto';
@@ -19,6 +27,7 @@ import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/guards/roles.guard';
 import { RoleName } from 'src/roles/enums/roles.enum';
 import { ActivateAccountDto } from './dto/activate-account.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 
 @ApiTags('auth')
 @ApiExtraModels(StandardResponseDto, UserDto)
@@ -54,9 +63,13 @@ export class AuthController {
   }
 
   @Post('activate')
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Activar cuenta y establecer contraseña' })
   @ApiBody({ type: ActivateAccountDto })
-  @ApiStandardResponse(UserDto, HttpStatus.CREATED, 'Operación exitosa')
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'Se ha enviado un correo de recuperación de contraseña.',
+  })
   @ApiErrorResponse(HttpStatus.CONFLICT, 'El email ya existe')
   @ApiErrorResponse(HttpStatus.BAD_REQUEST, 'Datos inválidos')
   @ApiErrorResponse(
@@ -65,5 +78,26 @@ export class AuthController {
   )
   async activate(@Body() dto: ActivateAccountDto) {
     return this.authService.activateAccount(dto.token, dto.password);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Enviar correo de recuperación de contraseña',
+    description:
+      'Envía un correo a un usuario con un enlace para restablecer su contraseña.',
+  })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'Se ha enviado un correo de recuperación de contraseña.',
+  })
+  @ApiErrorResponse(
+    HttpStatus.INTERNAL_SERVER_ERROR,
+    'Error interno del servidor',
+  )
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.authService.resetPassword(dto);
+    return null;
   }
 }
