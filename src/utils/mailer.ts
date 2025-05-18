@@ -10,7 +10,7 @@ export async function sendActivationEmail(email: string, token: string) {
       pass: process.env.NODEMAILER_PASS,
     },
   } as nodemailer.TransportOptions);
-  const activationUrl = `${process.env.FRONTEND_URL}/activate?token=${token}`;
+  const activationUrl = `${process.env.FRONTEND_URL}/auth/set-password?token=${token}`;
 
   await transporter.sendMail({
     from: `"Tu App" <${process.env.NODEMAILER_FROM_EMAIL}>`,
