@@ -40,7 +40,7 @@ export class AuthController {
   @Roles(RoleName.ADMINISTRATOR) */
   @Post('register')
   @ApiOperation({ summary: 'Crear un nuevo usuario' })
-  @ApiBody({ type: CreateUserDto })
+  @ApiBody({ type: RegisterDto })
   @ApiStandardResponse(UserDto, HttpStatus.CREATED, 'Operación exitosa')
   @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
   @ApiErrorResponse(HttpStatus.CONFLICT, 'El email ya existe')
