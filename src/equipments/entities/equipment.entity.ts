@@ -1,6 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-
+import { Maker } from 'src/maker/entities/maker.entity';
+import { Model } from 'src/model/entities/model.entity';
 @Entity()
 export class Equipment {
   @ApiProperty({
@@ -24,4 +31,12 @@ export class Equipment {
   })
   @Column({ name: 'start_of_operation', type: 'date' })
   startOfOperation: Date;
+
+  @ManyToOne(() => Maker, (maker) => maker.equipement)
+  @JoinColumn({ name: 'idMaker' })
+  maker: Maker;
+
+  @ManyToOne(() => Model, (model) => model.equipement)
+  @JoinColumn({ name: 'id' })
+  model: Model;
 }
