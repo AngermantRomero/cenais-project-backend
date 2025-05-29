@@ -34,6 +34,7 @@ import { SitesDto } from './dto/site.dto';
 import { Sites } from './entities/sites.entity';
 import { CreateSiteDto } from './dto/create-site.dto';
 import { UpdateSitesDto } from './dto/update-site.dto';
+import { SiteFilterDto } from './dto/site-filters.dto';
 
 @ApiTags('sites')
 @ApiExtraModels(StandardResponseDto, SitesDto)
@@ -56,8 +57,8 @@ export class SitesController {
     HttpStatus.INTERNAL_SERVER_ERROR,
     'Error interno del servidor',
   )
-  async getSites(): Promise<Sites[]> {
-    return this.sitesService.getSites();
+  async getSites(@Query() filters: SiteFilterDto): Promise<Sites[]> {
+    return this.sitesService.getSites(filters);
   }
 
   @Post()
@@ -173,7 +174,7 @@ export class SitesController {
     HttpStatus.INTERNAL_SERVER_ERROR,
     'Error interno del servidor',
   )
-  async deleteUser(@Param('id', ParseUUIDPipe) id: string) {
+  async deleteSite(@Param('id', ParseUUIDPipe) id: string) {
     await this.sitesService.deleteSite(id);
     return null;
   }
