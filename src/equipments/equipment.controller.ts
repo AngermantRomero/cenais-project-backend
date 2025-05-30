@@ -160,7 +160,7 @@ export class EquipmentsController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
-    summary: 'Eliminar un usuario',
+    summary: 'Eliminar equipo',
     description:
       'Elimina permanentemente un usuario del sistema. Operación irreversible.',
   })

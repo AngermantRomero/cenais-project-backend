@@ -42,6 +42,7 @@ import { EquipmentStateHistoryModule } from './equipment-state-history/equipment
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
         autoLoadEntities: true,
+        migrationsRun: true,
       }),
     }),
     AuthModule,
