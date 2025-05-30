@@ -34,4 +34,19 @@ export class UpdateEquipmentDto {
   @IsOptional()
   @IsString()
   modelId?: string;
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  typeEquipementId?: string;
+
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  initialStateId?: string;
 }

@@ -13,6 +13,8 @@ import { MakerModule } from './maker/maker.module';
 import { CountryModule } from './country/country.module';
 import { ModelModule } from './model/model.module';
 import { TypeEquipementModule } from './type-equipement/type-equipement.module';
+import { TypeStateModule } from './type-state/type-state.module';
+import { EquipmentStateHistoryModule } from './equipment-state-history/equipment-state-history.module';
 
 @Module({
   imports: [
@@ -52,6 +54,8 @@ import { TypeEquipementModule } from './type-equipement/type-equipement.module';
     CountryModule,
     ModelModule,
     TypeEquipementModule,
+    TypeStateModule,
+    EquipmentStateHistoryModule,
   ],
   providers: [
     {

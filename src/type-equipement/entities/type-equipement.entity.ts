@@ -9,6 +9,6 @@ export class TypeEquipement {
   @Column({ name: 'Descripcion', length: 45 })
   description: string;
 
-  @OneToMany(() => Equipment, (equipement) => equipement.typeEquipement)
+  @OneToMany(() => Equipment, (equipment) => equipment.typeEquipement)
   equipement: Equipment[];
 }

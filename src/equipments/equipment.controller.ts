@@ -26,6 +26,7 @@ import { ApiStandardResponse } from 'src/common/decorators/api-standard-response
 import { ApiErrorResponse } from 'src/common/decorators/api-error-response.decorator';
 import { ApiStandardArrayResponse } from 'src/common/decorators/api-standard-array-response.decorator';
 import { StandardResponseDto } from 'src/common/dto/response.dto';
+import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
 
 @ApiTags('equipments')
 @ApiExtraModels(StandardResponseDto, EquipmentDto)
@@ -90,6 +91,21 @@ export class EquipmentsController {
   )
   async findOne(@Param('id') id: string): Promise<Equipment> {
     return this.equipmentsService.findOne(id);
+  }
+  @Get(':id/state-history')
+  @ApiOperation({
+    summary: 'Obtener historial de estados',
+    description: 'Obtiene el historial completo de estados de un equipo',
+  })
+  @ApiStandardArrayResponse(
+    EquipmentStateHistory,
+    HttpStatus.OK,
+    'Operación exitosa',
+  )
+  async getStateHistory(
+    @Param('id') id: string,
+  ): Promise<EquipmentStateHistory[]> {
+    return this.equipmentsService.getStateHistory(id);
   }
 
   @Patch(':id')
