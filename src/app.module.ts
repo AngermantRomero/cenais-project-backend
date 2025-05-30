@@ -12,6 +12,7 @@ import { EquipmentsModule } from './equipments/equipment.module';
 import { MakerModule } from './maker/maker.module';
 import { CountryModule } from './country/country.module';
 import { ModelModule } from './model/model.module';
+import { TypeEquipementModule } from './type-equipement/type-equipement.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { ModelModule } from './model/model.module';
     MakerModule,
     CountryModule,
     ModelModule,
+    TypeEquipementModule,
   ],
   providers: [
     {
