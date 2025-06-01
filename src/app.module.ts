@@ -12,6 +12,9 @@ import { EquipmentsModule } from './equipments/equipment.module';
 import { MakerModule } from './maker/maker.module';
 import { CountryModule } from './country/country.module';
 import { ModelModule } from './model/model.module';
+import { TypeEquipementModule } from './type-equipement/type-equipement.module';
+import { TypeStateModule } from './type-state/type-state.module';
+import { EquipmentStateHistoryModule } from './equipment-state-history/equipment-state-history.module';
 
 @Module({
   imports: [
@@ -39,6 +42,7 @@ import { ModelModule } from './model/model.module';
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
         autoLoadEntities: true,
+        migrationsRun: true,
       }),
     }),
     AuthModule,
@@ -50,6 +54,9 @@ import { ModelModule } from './model/model.module';
     MakerModule,
     CountryModule,
     ModelModule,
+    TypeEquipementModule,
+    TypeStateModule,
+    EquipmentStateHistoryModule,
   ],
   providers: [
     {

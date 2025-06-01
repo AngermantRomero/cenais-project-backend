@@ -4,10 +4,14 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Maker } from 'src/maker/entities/maker.entity';
 import { Model } from 'src/model/entities/model.entity';
+import { TypeEquipement } from 'src/type-equipement/entities/type-equipement.entity';
+import { TypeState } from 'src/type-state/entities/type-state.entity';
+import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
 @Entity()
 export class Equipment {
   @ApiProperty({
@@ -39,4 +43,17 @@ export class Equipment {
   @ManyToOne(() => Model, (model) => model.equipement)
   @JoinColumn({ name: 'id' })
   model: Model;
+  @ManyToOne(
+    () => TypeEquipement,
+    (typeEquipement) => typeEquipement.equipement,
+  )
+  @JoinColumn({ name: 'type_equipement_id' })
+  typeEquipement: TypeEquipement;
+
+  @ManyToOne(() => TypeState, { eager: true }) // Carga automática
+  @JoinColumn({ name: 'current_state_id' })
+  currentState: TypeState;
+
+  @OneToMany(() => EquipmentStateHistory, (history) => history.equipment)
+  stateHistory: EquipmentStateHistory[];
 }

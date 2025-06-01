@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsNotEmpty, IsString, Length } from 'class-validator';
+import {
+  IsDateString,
+  IsNotEmpty,
+  IsString,
+  Length,
+  IsUUID,
+} from 'class-validator';
 
 export class CreateEquipmentDto {
   @ApiProperty({ example: 'SN-12345', description: 'Número de serie único' })
@@ -34,4 +40,20 @@ export class CreateEquipmentDto {
   @IsNotEmpty()
   @IsString()
   modelId: string;
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'ID del tipo de equipamiento (TypeEquipement)',
+  })
+  @IsNotEmpty()
+  @IsString()
+  @IsUUID()
+  typeEquipementId: string;
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'ID del estado inicial (UUID) - Ej: "Activo"',
+    required: true,
+  })
+  @IsNotEmpty()
+  @IsUUID()
+  initialStateId: string;
 }
