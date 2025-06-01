@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -33,48 +34,61 @@ export class EquipmentsService {
     private readonly historyRepository: Repository<EquipmentStateHistory>,
     private readonly dataSource: DataSource,
   ) {}
-
-  // --- Métodos CRUD principales ---
+  private readonly logger = new Logger(EquipmentsService.name);
   async create(createDto: CreateEquipmentDto): Promise<Equipment> {
     await this.validateUniqueFields(createDto);
 
-    return this.dataSource.transaction(async (transactionalEntityManager) => {
-      const [maker, model, typeEquipement, initialState] = await Promise.all([
-        this.validateMaker(createDto.makerId, transactionalEntityManager),
-        this.validateModel(
-          createDto.modelId,
-          createDto.makerId,
-          transactionalEntityManager,
-        ),
-        this.validateTypeEquipement(createDto.typeEquipementId),
-        this.validateInitialState(
-          createDto.initialStateId,
-          transactionalEntityManager,
-        ),
-      ]);
+    return this.dataSource
+      .transaction(async (transactionalEntityManager) => {
+        // Validar y obtener todas las relaciones necesarias
+        const [maker, model, typeEquipement, initialState] = await Promise.all([
+          this.validateMaker(createDto.makerId, transactionalEntityManager),
+          this.validateModel(
+            createDto.modelId,
+            createDto.makerId,
+            transactionalEntityManager,
+          ),
+          this.validateTypeEquipement(
+            createDto.typeEquipementId,
+            transactionalEntityManager,
+          ),
+          this.validateInitialState(
+            createDto.initialStateId,
+            transactionalEntityManager,
+          ),
+        ]);
 
-      const equipment = this.equipmentRepository.create({
-        serialNumber: createDto.serialNumber,
-        inventoryNumber: createDto.inventoryNumber,
-        startOfOperation: createDto.startOfOperation,
-        maker,
-        model,
-        typeEquipement,
-        currentState: initialState,
+        // Crear el nuevo equipo
+        const equipment = new Equipment();
+        equipment.serialNumber = createDto.serialNumber;
+        equipment.inventoryNumber = createDto.inventoryNumber;
+        equipment.startOfOperation = createDto.startOfOperation;
+        equipment.maker = maker;
+        equipment.model = model;
+        equipment.typeEquipement = typeEquipement;
+        equipment.currentState = initialState;
+
+        // Guardar el equipo
+        const savedEquipment = await transactionalEntityManager.save(equipment);
+
+        // Registrar el cambio de estado inicial
+        await transactionalEntityManager.save(EquipmentStateHistory, {
+          equipment: savedEquipment,
+          state: initialState,
+          changedBy: 'system',
+          changedAt: new Date(),
+        });
+
+        this.logger.log(`Equipo creado con ID: ${savedEquipment.id}`);
+        return savedEquipment;
+      })
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error ? error.message : 'Error desconocido';
+        this.logger.error(`Error al crear equipo: ${message}`);
+        throw error;
       });
-
-      const savedEquipment = await transactionalEntityManager.save(equipment);
-
-      await transactionalEntityManager.save(EquipmentStateHistory, {
-        equipment: { id: savedEquipment.id },
-        state: initialState,
-        changedBy: 'system',
-      });
-
-      return savedEquipment;
-    });
   }
-
   async findAll(): Promise<Equipment[]> {
     return this.equipmentRepository.find({
       relations: ['maker', 'model', 'typeEquipement', 'currentState'],
@@ -100,7 +114,6 @@ export class EquipmentsService {
     return this.entityManager.transaction(async (manager) => {
       const equipment = await this.findOne(id);
 
-      // Actualizar campos básicos
       if (updateDto.serialNumber)
         equipment.serialNumber = updateDto.serialNumber;
       if (updateDto.inventoryNumber)
@@ -108,7 +121,6 @@ export class EquipmentsService {
       if (updateDto.startOfOperation)
         equipment.startOfOperation = updateDto.startOfOperation;
 
-      // Actualizar relaciones
       if (updateDto.makerId) {
         equipment.maker = await this.validateMaker(updateDto.makerId);
       }
@@ -146,7 +158,6 @@ export class EquipmentsService {
     }
   }
 
-  // --- Métodos de consulta ---
   async findByDate(date: string): Promise<Equipment[]> {
     return this.equipmentRepository.find({
       where: { startOfOperation: new Date(date) },
@@ -184,7 +195,6 @@ export class EquipmentsService {
     });
   }
 
-  // --- Métodos de validación ---
   private async validateInitialState(
     stateId: string,
     manager = this.typeStateRepository.manager,
@@ -195,14 +205,16 @@ export class EquipmentsService {
     return state;
   }
 
-  private async validateTypeEquipement(id: string): Promise<TypeEquipement> {
-    const typeEquipement = await this.typeEquipementRepository.findOne({
+  private async validateTypeEquipement(
+    id: string,
+    manager: EntityManager = this.typeEquipementRepository.manager,
+  ): Promise<TypeEquipement> {
+    const typeEquipement = await manager.findOne(TypeEquipement, {
       where: { id },
-      relations: ['equipment'], // Carga la relación si es necesario
     });
 
     if (!typeEquipement) {
-      throw new NotFoundException(`TypeEquipement with ID ${id} not found`);
+      throw new NotFoundException(`Tipo de equipo con ID ${id} no encontrado`);
     }
 
     return typeEquipement;
@@ -296,7 +308,7 @@ export class EquipmentsService {
       equipment: { id: equipmentId },
       state: { id: newStateId },
       changedBy,
-      changedAt: new Date(), // Fecha actual automática
+      changedAt: new Date(),
     });
   }
   async changeEquipmentState(
@@ -304,30 +316,23 @@ export class EquipmentsService {
     newStateId: string,
     changedBy: string,
   ): Promise<Equipment> {
-    // Validar que el equipo existe
     const equipment = await this.equipmentRepository.findOneBy({
       id: equipmentId,
     });
     if (!equipment) {
       throw new NotFoundException(`Equipment with ID ${equipmentId} not found`);
     }
-
-    // Validar que el nuevo estado existe
     const newState = await this.typeStateRepository.findOneBy({
       id: newStateId,
     });
     if (!newState) {
       throw new NotFoundException(`State with ID ${newStateId} not found`);
     }
-
-    // Iniciar transacción para operaciones atómicas
     return this.entityManager.transaction(
       async (transactionalEntityManager) => {
-        // Actualizar estado actual del equipo
         equipment.currentState = newState;
         await transactionalEntityManager.save(equipment);
 
-        // Registrar el cambio en el historial
         await transactionalEntityManager.save(EquipmentStateHistory, {
           equipment: { id: equipmentId },
           state: { id: newStateId },
@@ -343,7 +348,7 @@ export class EquipmentsService {
     return this.equipmentRepository.find({
       where: { currentState: { id: stateId } },
       relations: ['maker', 'model', 'typeEquipement', 'currentState'],
-      order: { inventoryNumber: 'ASC' }, // Orden alfabético por número de inventario
+      order: { inventoryNumber: 'ASC' },
     });
   }
 }
