@@ -158,6 +158,7 @@ export class EquipmentsService {
     }
   }
 
+  // --- Métodos de consulta ---
   async findByDate(date: string): Promise<Equipment[]> {
     return this.equipmentRepository.find({
       where: { startOfOperation: new Date(date) },
