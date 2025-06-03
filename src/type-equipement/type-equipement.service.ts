@@ -5,7 +5,6 @@ import { TypeEquipement } from './entities/type-equipement.entity';
 import { CreateTypeEquipementDto } from './dto/create-typeEquipement.dto';
 import { UpdateTypeEquipementDto } from './dto/update-typeEquipement.dto';
 import { TypeEquipementFilterDto } from './dto/type-equipement-filter.dto';
-import { UUID } from 'crypto';
 
 @Injectable()
 export class TypeEquipementService {
@@ -30,7 +29,7 @@ export class TypeEquipementService {
   }
 
   // Obtener un tipo de equipo por ID
-  async findOne(id: UUID): Promise<TypeEquipement> {
+  async findOne(id: string): Promise<TypeEquipement> {
     const typeEquipement = await this.typeEquipementRepository.findOne({
       where: { id },
     });
@@ -48,9 +47,9 @@ export class TypeEquipementService {
       query.andWhere('typeEquipement.id = :id', { id: filters.id });
     }
 
-    if (filters.description) {
-      query.andWhere('typeEquipement.description LIKE :description', {
-        description: `%${filters.description}%`, // Búsqueda parcial
+    if (filters.name) {
+      query.andWhere('typeEquipement.name LIKE :name', {
+        name: `%${filters.name}%`, // Búsqueda parcial
       });
     }
 
@@ -58,7 +57,7 @@ export class TypeEquipementService {
   }
   // Actualizar un tipo de equipo
   async update(
-    id: UUID,
+    id: string,
     updateTypeEquipementDto: UpdateTypeEquipementDto,
   ): Promise<TypeEquipement> {
     const typeEquipement = await this.findOne(id); // Reutiliza el método findOne para validar existencia
@@ -70,7 +69,7 @@ export class TypeEquipementService {
   }
 
   // Eliminar un tipo de equipo
-  async remove(id: UUID): Promise<void> {
+  async remove(id: string): Promise<void> {
     const typeEquipement = await this.findOne(id); // Valida que exista
     await this.typeEquipementRepository.remove(typeEquipement);
   }

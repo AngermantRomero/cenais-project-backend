@@ -52,18 +52,23 @@ export class TypeEquipementController {
     type: [TypeEquipement],
   })
   @ApiQuery({
-    name: 'filters',
-    type: TypeEquipementFilterDto,
+    name: 'id',
+    type: String,
     required: false,
-    description: 'Filtros para buscar tipos de equipamiento',
+    description: 'Filtrar por ID (UUID)',
+  })
+  @ApiQuery({
+    name: 'name',
+    type: String,
+    required: false,
+    description: 'Filtrar por nombre parcial',
   })
   async findAll(
-    @Query() filters: TypeEquipementFilterDto = {},
+    @Query() filters: TypeEquipementFilterDto,
   ): Promise<TypeEquipement[]> {
-    if (Object.keys(filters).length > 0) {
-      return this.typeEquipementService.filter(filters);
-    }
-    return this.typeEquipementService.findAll();
+    return Object.keys(filters).length > 0
+      ? this.typeEquipementService.filter(filters) // Aplica filtros si hay parámetros
+      : this.typeEquipementService.findAll(); // Devuelve todos los registros
   }
 
   @Get(':id')
@@ -73,12 +78,14 @@ export class TypeEquipementController {
     type: TypeEquipement,
   })
   @ApiNotFoundResponse({ description: 'Tipo de equipamiento no encontrado' })
+  @ApiBadRequestResponse({ description: 'ID con formato inválido' })
   @ApiParam({
     name: 'id',
-    type: Number,
-    description: 'ID del tipo de equipamiento',
+    type: String,
+    format: 'uuid', // <-- Especificar que es UUID
+    description: 'ID (UUID) del tipo de equipamiento',
   })
-  async findOne(@Param('id') id: UUID): Promise<TypeEquipement> {
+  async findOne(@Param('id') id: string): Promise<TypeEquipement> {
     return this.typeEquipementService.findOne(id);
   }
 

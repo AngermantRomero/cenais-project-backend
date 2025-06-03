@@ -10,5 +10,5 @@ export class CreateTypeEquipementDto {
   @IsString({ message: 'La descripción debe ser una cadena de texto.' })
   @IsNotEmpty({ message: 'La descripción no puede estar vacía.' })
   @Length(1, 45, {})
-  description: string;
+  name: string;
 }
