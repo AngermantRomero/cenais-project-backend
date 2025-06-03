@@ -10,6 +10,9 @@ import {
   Query,
   HttpStatus,
   HttpCode,
+  NotFoundException,
+  BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -111,39 +114,77 @@ export class MakerController {
 
   @Patch(':id')
   @ApiOperation({
-    summary: 'Actualizar un fabricante',
-    description: 'Modifica los datos de un fabricante existente (parcial).',
+    summary: 'Actualización parcial de fabricante',
+    description:
+      'Actualiza selectivamente los campos de un fabricante existente usando el método PATCH.',
   })
   @ApiParam({
     name: 'id',
     type: 'string',
     format: 'uuid',
     example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
+    description: 'UUID v4 del fabricante a actualizar',
   })
   @ApiBody({
     type: UpdateMakerDto,
+    description: 'Campos a actualizar (parciales)',
     examples: {
-      'Actualizar nombre': {
-        value: { name: 'Nuevo nombre' },
+      'Actualizar marca': {
+        value: { brand: 'Nuevo nombre' },
+        description: 'Actualiza solo el nombre de la marca',
       },
-      'Actualizar múltiples campos': {
-        value: { name: 'Nombre nuevo', isActive: false },
+      'Actualizar descripción': {
+        value: { description: 'Nueva descripción' },
+        description: 'Actualiza solo la descripción',
+      },
+      'Actualizar país': {
+        value: { countryName: 'Nuevo país' },
+        description: 'Actualiza solo el país asociado',
+      },
+      'Actualización múltiple': {
+        value: {
+          brand: 'Nuevo nombre',
+          description: 'Nueva descripción',
+          countryName: 'Nuevo país',
+        },
+        description: 'Actualiza múltiples campos simultáneamente',
       },
     },
   })
   @ApiStandardResponse(
     MakerResponseDto,
     HttpStatus.OK,
-    'Fabricante actualizado',
+    'Fabricante actualizado exitosamente',
   )
-  @ApiErrorResponse(HttpStatus.NOT_FOUND, 'Fabricante no encontrado')
-  @ApiErrorResponse(HttpStatus.BAD_REQUEST, 'Datos inválidos')
-  @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
-  async update(
-    @Param('id', ParseUUIDPipe) id: string,
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Datos inválidos o formato incorrecto',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Fabricante no encontrado con el ID proporcionado',
+  })
+  @ApiErrorResponse(
+    HttpStatus.INTERNAL_SERVER_ERROR,
+    'Error interno del servidor',
+  )
+  async updateMaker(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() updateMakerDto: UpdateMakerDto,
   ): Promise<MakerResponseDto> {
-    return this.makerService.update(id, updateMakerDto);
+    try {
+      return await this.makerService.update(id, updateMakerDto);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new NotFoundException(`Fabricante con ID ${id} no encontrado`);
+      }
+      if (error instanceof BadRequestException) {
+        throw new BadRequestException(error.message);
+      }
+      throw new InternalServerErrorException(
+        'Error al procesar la actualización del fabricante',
+      );
+    }
   }
 
   @Delete(':id')
