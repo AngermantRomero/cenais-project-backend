@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TypeEquipement } from './entities/type-equipement.entity';
@@ -6,7 +11,6 @@ import { CreateTypeEquipementDto } from './dto/create-typeEquipement.dto';
 import { UpdateTypeEquipementDto } from './dto/update-typeEquipement.dto';
 import { TypeEquipementFilterDto } from './dto/type-equipement-filter.dto';
 import { UUID } from 'crypto';
-
 @Injectable()
 export class TypeEquipementService {
   constructor(
@@ -18,10 +22,36 @@ export class TypeEquipementService {
   async create(
     createTypeEquipementDto: CreateTypeEquipementDto,
   ): Promise<TypeEquipement> {
-    const newTypeEquipement = this.typeEquipementRepository.create(
-      createTypeEquipementDto,
-    );
-    return await this.typeEquipementRepository.save(newTypeEquipement);
+    // 1. Verificar si ya existe un tipo con la misma descripción
+    const existingType = await this.typeEquipementRepository.findOne({
+      where: { description: createTypeEquipementDto.description.trim() },
+    });
+
+    if (existingType) {
+      throw new ConflictException(
+        'Ya existe un tipo de equipamiento con esta descripción',
+      );
+    }
+
+    // 2. Crear la nueva entidad
+    const newTypeEquipement = this.typeEquipementRepository.create({
+      description: createTypeEquipementDto.description.trim(),
+    });
+
+    try {
+      // 3. Guardar en la base de datos
+      return await this.typeEquipementRepository.save(newTypeEquipement);
+    } catch (error) {
+      // Manejo específico de error de duplicado (PostgreSQL)
+      if (error.code === '23505') {
+        throw new ConflictException('El tipo de equipamiento ya existe');
+      }
+
+      // Otros errores de base de datos
+      throw new InternalServerErrorException(
+        'Error al crear el tipo de equipamiento',
+      );
+    }
   }
 
   // Obtener todos los tipos de equipo

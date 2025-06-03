@@ -7,6 +7,8 @@ import {
   Put,
   Delete,
   Query,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { TypeEquipementService } from './type-equipement.service';
 import { CreateTypeEquipementDto } from './dto/create-typeEquipement.dto';
@@ -38,6 +40,7 @@ export class TypeEquipementController {
     type: TypeEquipement,
   })
   @ApiBadRequestResponse({ description: 'Datos de entrada inválidos' })
+  @UsePipes(new ValidationPipe({ transform: true }))
   @ApiBody({ type: CreateTypeEquipementDto })
   async create(
     @Body() createTypeEquipementDto: CreateTypeEquipementDto,

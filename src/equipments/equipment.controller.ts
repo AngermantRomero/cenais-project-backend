@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { EquipmentsService } from './equipment.service';
 import { CreateEquipmentDto } from './dto/create-equipment.dto';
+import { AssignSiteDto } from './dto/assign-site.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
 import { Equipment } from './entities/equipment.entity';
 import {
@@ -58,6 +59,37 @@ export class EquipmentsController {
     return this.equipmentsService.create(createEquipmentDto);
   }
 
+  @Post(':id/assign-site')
+  @ApiOperation({ summary: 'Asignar equipo a un sitio' })
+  @ApiParam({
+    name: 'id',
+    type: String,
+    description: 'ID único del equipo',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Equipo asignado correctamente',
+    type: Equipment,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Equipo o sitio no encontrado',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Datos de entrada inválidos',
+  })
+  async assignToSite(
+    @Param('id') equipmentID: string,
+    @Body() assignSiteDto: AssignSiteDto,
+  ) {
+    return this.equipmentsService.assignToSite(
+      equipmentID,
+      assignSiteDto.siteCode,
+    );
+  }
+
   @Get()
   @ApiOperation({
     summary: 'Listar equipos',
@@ -71,6 +103,16 @@ export class EquipmentsController {
   )
   async findAll(): Promise<Equipment[]> {
     return this.equipmentsService.findAll();
+  }
+  @Get('by-site/:siteCode')
+  @ApiOperation({ summary: 'Obtener equipos por sitio' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de equipos',
+    type: [Equipment],
+  })
+  async getBySite(@Param('siteCode') siteCode: string) {
+    return this.equipmentsService.getEquipmentBySite(siteCode);
   }
   @Get(':id')
   @ApiOperation({
@@ -155,6 +197,16 @@ export class EquipmentsController {
     @Body() updateEquipmentDto: UpdateEquipmentDto,
   ): Promise<Equipment> {
     return this.equipmentsService.update(id, updateEquipmentDto);
+  }
+  @Delete(':id/remove-site')
+  @ApiOperation({ summary: 'Remover equipo de un sitio' })
+  @ApiResponse({
+    status: 200,
+    description: 'Equipo removido del sitio',
+    type: Equipment,
+  })
+  async removeFromSite(@Param('id') id: string) {
+    return this.equipmentsService.removeFromSite(id);
   }
 
   @Delete(':id')

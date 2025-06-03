@@ -9,6 +9,8 @@ import { EquipmentStateHistoryModule } from '../equipment-state-history/equipmen
 import { TypeState } from 'src/type-state/entities/type-state.entity';
 import { TypeEquipement } from '../type-equipement/entities/type-equipement.entity';
 import { TypeStateModule } from 'src/type-state/type-state.module';
+import { SitesModule } from '../sites/sites.module';
+import { Sites } from '../sites/entities/sites.entity';
 import { TypeEquipementModule } from 'src/type-equipement/type-equipement.module';
 import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
 @Module({
@@ -20,10 +22,12 @@ import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equi
       TypeState,
       TypeEquipement,
       EquipmentStateHistory,
+      Sites,
     ]),
     EquipmentStateHistoryModule,
     TypeStateModule,
     TypeEquipementModule,
+    SitesModule,
   ],
   controllers: [EquipmentsController],
   providers: [EquipmentsService],

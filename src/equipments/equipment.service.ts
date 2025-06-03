@@ -10,6 +10,7 @@ import { Equipment } from './entities/equipment.entity';
 import { CreateEquipmentDto } from './dto/create-equipment.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
 import { Maker } from '../maker/entities/maker.entity';
+import { Sites } from 'src/sites/entities/sites.entity';
 import { Model } from '../model/entities/model.entity';
 import { EntityManager } from 'typeorm';
 import { TypeEquipement } from 'src/type-equipement/entities/type-equipement.entity';
@@ -27,6 +28,8 @@ export class EquipmentsService {
     private readonly modelRepository: Repository<Model>,
     @InjectRepository(TypeState)
     private readonly typeStateRepository: Repository<TypeState>,
+    @InjectRepository(Sites)
+    private readonly siteRepository: Repository<Sites>,
     private readonly entityManager: EntityManager,
     @InjectRepository(TypeEquipement)
     private readonly typeEquipementRepository: Repository<TypeEquipement>,
@@ -68,10 +71,8 @@ export class EquipmentsService {
         equipment.typeEquipement = typeEquipement;
         equipment.currentState = initialState;
 
-        // Guardar el equipo
         const savedEquipment = await transactionalEntityManager.save(equipment);
 
-        // Registrar el cambio de estado inicial
         await transactionalEntityManager.save(EquipmentStateHistory, {
           equipment: savedEquipment,
           state: initialState,
@@ -95,6 +96,53 @@ export class EquipmentsService {
       order: { startOfOperation: 'DESC' },
     });
   }
+  async assignToSite(
+    equipmentId: string,
+    siteCode: string,
+  ): Promise<Equipment> {
+    return this.entityManager.transaction(async (manager) => {
+      const equipment = await manager.findOne(Equipment, {
+        where: { id: equipmentId },
+        relations: ['sites'],
+      });
+
+      if (!equipment) {
+        throw new NotFoundException(
+          `Equipo con ID ${equipmentId} no encontrado`,
+        );
+      }
+
+      const site = await manager.findOne(Sites, {
+        where: { code: siteCode },
+      });
+
+      if (!site) {
+        throw new NotFoundException(
+          `Sitio con código ${siteCode} no encontrado`,
+        );
+      }
+
+      equipment.sites = site;
+
+      return manager.save(equipment);
+    });
+  }
+
+  async getEquipmentBySite(siteCode: string): Promise<Equipment[]> {
+    const siteExists = await this.siteRepository.exist({
+      where: { code: siteCode },
+    });
+
+    if (!siteExists) {
+      throw new NotFoundException(`Sitio con código ${siteCode} no encontrado`);
+    }
+
+    return this.equipmentRepository.find({
+      where: { sites: { code: siteCode } },
+      relations: ['maker', 'model', 'typeEquipement', 'currentState', 'sites'],
+      order: { inventoryNumber: 'ASC' },
+    });
+  }
 
   async findOne(id: string): Promise<Equipment> {
     const equipment = await this.equipmentRepository.findOne({
@@ -107,6 +155,22 @@ export class EquipmentsService {
     }
 
     return equipment;
+  }
+
+  async removeFromSite(equipmentId: string): Promise<Equipment> {
+    const equipment = await this.equipmentRepository.findOne({
+      where: { id: equipmentId },
+      relations: ['site'],
+    });
+
+    if (!equipment) {
+      throw new NotFoundException(`Equipo con ID ${equipmentId} no encontrado`);
+    }
+
+    return this.equipmentRepository.save({
+      ...equipment,
+      site: null,
+    });
   }
 
   async update(id: string, updateDto: UpdateEquipmentDto): Promise<Equipment> {

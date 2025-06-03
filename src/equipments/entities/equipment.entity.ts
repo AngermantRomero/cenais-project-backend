@@ -9,6 +9,7 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { Maker } from 'src/maker/entities/maker.entity';
 import { Model } from 'src/model/entities/model.entity';
+import { Sites } from 'src/sites/entities/sites.entity';
 import { TypeEquipement } from 'src/type-equipement/entities/type-equipement.entity';
 import { TypeState } from 'src/type-state/entities/type-state.entity';
 import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
@@ -53,6 +54,10 @@ export class Equipment {
   @ManyToOne(() => TypeState, { eager: true }) // Carga automática
   @JoinColumn({ name: 'current_state_id' })
   currentState: TypeState;
+
+  @ManyToOne(() => Sites, (sites) => sites.equipments)
+  @JoinColumn({ name: 'site_code', referencedColumnName: 'code' })
+  sites: Sites;
 
   @OneToMany(() => EquipmentStateHistory, (history) => history.equipment)
   stateHistory: EquipmentStateHistory[];

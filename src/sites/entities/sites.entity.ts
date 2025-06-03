@@ -4,9 +4,11 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
 import { Province } from 'src/provinces/entities/province.entity';
+import { Equipment } from 'src/equipments/entities/equipment.entity';
 
 @Entity('sites')
 export class Sites {
@@ -28,7 +30,7 @@ export class Sites {
     example: 'MGV',
     description: 'Codigo del sitio',
   })
-  @Column({ type: 'varchar', length: 45 })
+  @Column({ type: 'varchar', length: 45, unique: true })
   code: string;
 
   @ApiProperty({
@@ -38,4 +40,7 @@ export class Sites {
   @ManyToOne(() => Province, (province) => province.sites)
   @JoinColumn({ name: 'province_id' })
   province: Province;
+
+  @OneToMany(() => Equipment, (equipment) => equipment.sites)
+  equipments: Equipment[];
 }
