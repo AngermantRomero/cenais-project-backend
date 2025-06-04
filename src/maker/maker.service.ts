@@ -1,12 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository, ILike, FindOptionsWhere } from 'typeorm';
 import { Maker } from './entities/maker.entity';
 import { Country } from '../country/entities/country.entity';
 import { CreateMakerDto } from './dto/create-maker.dto';
 import { UpdateMakerDto } from './dto/update-maker.dto';
 import { MakerResponseDto } from './dto/maker.dto';
 import { MakerFiltersDto } from './dto/maker-filters.dto';
+import { validate } from 'class-validator';
 
 @Injectable()
 export class MakerService {
@@ -83,19 +88,42 @@ export class MakerService {
     id: string,
     updateMakerDto: UpdateMakerDto,
   ): Promise<MakerResponseDto> {
-    const maker = await this.findOneInternal(id);
-
-    if (updateMakerDto.countryName) {
-      maker.country = await this.handleCountry(updateMakerDto.countryName);
+    // Validación básica del ID
+    if (!id || typeof id !== 'string') {
+      throw new BadRequestException('ID de fabricante no válido');
     }
 
+    // Validar que al menos un campo sea proporcionado
+    if (Object.keys(updateMakerDto).length === 0) {
+      throw new BadRequestException(
+        'No se proporcionaron campos para actualizar',
+      );
+    }
+
+    // Buscar el fabricante
+    const maker = await this.makerRepository.findOne({
+      where: { idMaker: id },
+      relations: ['country'],
+    });
+
+    if (!maker) {
+      throw new NotFoundException(`Fabricante con ID ${id} no encontrado`);
+    }
+
+    // Aplicar actualizaciones solo si vienen en el DTO
     if (updateMakerDto.brand !== undefined) {
       maker.brand = updateMakerDto.brand.trim();
     }
+
     if (updateMakerDto.description !== undefined) {
       maker.description = updateMakerDto.description.trim();
     }
 
+    if (updateMakerDto.countryName !== undefined) {
+      maker.country = await this.handleCountry(updateMakerDto.countryName);
+    }
+
+    // Guardar cambios
     const updatedMaker = await this.makerRepository.save(maker);
     return this.toResponseDto(updatedMaker);
   }
