@@ -4,6 +4,7 @@ import { databaseConfig } from '../config/database.config';
 import { seedProvinces } from './province.seed';
 import { seedRoles } from './roles.seed';
 import { seedAdminUser } from './adminUser.seed';
+import { seedEquipmentStatus } from './equipment-status.seed';
 
 async function runSeed() {
   const dataSource = new DataSource(databaseConfig);
@@ -13,6 +14,7 @@ async function runSeed() {
   await seedProvinces(dataSource);
   await seedRoles(dataSource);
   await seedAdminUser(dataSource);
+  await seedEquipmentStatus(dataSource);
 
   console.log('🌱 Seeding completado');
   await dataSource.destroy();
