@@ -136,15 +136,15 @@ export class EquipmentsService {
         );
       }
 
-      if (updateDto.initialStateId) {
+      if (updateDto.currentStateId) {
         equipment.currentState = await this.validateInitialState(
-          updateDto.initialStateId,
+          updateDto.currentStateId,
         );
-        await this.historyRepository.save({
+        /* await this.historyRepository.save({
           equipment: { id },
           state: { id: updateDto.initialStateId },
           changedBy: 'system',
-        });
+        }); */
       }
 
       return manager.save(equipment);
@@ -239,12 +239,12 @@ export class EquipmentsService {
     const existing = await query.getOne();
 
     const errors: string[] = [];
-    if (existing?.serialNumber === dto.serialNumber) {
+    /* if (existing?.serialNumber === dto.serialNumber) {
       errors.push(`Serial ${dto.serialNumber} ya existe`);
     }
     if (existing?.inventoryNumber === dto.inventoryNumber) {
       errors.push(`Inventario ${dto.inventoryNumber} ya existe`);
-    }
+    } */
 
     if (errors.length > 0) {
       throw new BadRequestException({ message: 'Error de validación', errors });

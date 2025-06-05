@@ -48,5 +48,5 @@ export class UpdateEquipmentDto {
   })
   @IsOptional()
   @IsString()
-  initialStateId?: string;
+  currentStateId?: string;
 }
