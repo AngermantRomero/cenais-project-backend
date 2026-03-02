@@ -5,11 +5,9 @@ import { TypeState } from './entities/type-state.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([TypeState]), // Esto hace que el Repository esté disponible
-  ],
+  imports: [TypeOrmModule.forFeature([TypeState])],
   controllers: [TypeStateController],
   providers: [TypeStateService],
-  exports: [TypeStateService],
+  exports: [TypeOrmModule],
 })
 export class TypeStateModule {}
