@@ -9,6 +9,7 @@ import { Equipment } from 'src/equipments/entities/equipment.entity';
   imports: [
     TypeOrmModule.forFeature([EquipmentStateHistory, Equipment, TypeState]),
   ],
+  controllers: [EquipmentStateHistoryController],
   providers: [EquipmentStateHistoryService],
   exports: [TypeOrmModule, EquipmentStateHistoryService],
 })
