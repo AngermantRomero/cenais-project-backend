@@ -12,6 +12,7 @@ import { Model } from 'src/model/entities/model.entity';
 import { TypeEquipement } from 'src/type-equipement/entities/type-equipement.entity';
 import { TypeState } from 'src/type-state/entities/type-state.entity';
 import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
+import { Reparation } from 'src/repairs/entities/repair.entity';
 
 @Entity('equipment')
 export class Equipment {
@@ -98,4 +99,7 @@ export class Equipment {
   })
   @OneToMany(() => EquipmentStateHistory, (history) => history.equipment)
   stateHistory: EquipmentStateHistory[];
+
+  @OneToMany(() => Reparation, (repair) => repair.equipment)
+  repairs: Reparation[];
 }

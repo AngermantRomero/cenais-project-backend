@@ -15,6 +15,7 @@ import { ModelModule } from './model/model.module';
 import { TypeEquipementModule } from './type-equipement/type-equipement.module';
 import { TypeStateModule } from './type-state/type-state.module';
 import { EquipmentStateHistoryModule } from './equipment-state-history/equipment-state-history.module';
+import { RepairsModule } from './repairs/repairs.module';
 
 @Module({
   imports: [
@@ -40,9 +41,9 @@ import { EquipmentStateHistoryModule } from './equipment-state-history/equipment
         password: config.get<string>('DB_PASS'),
         database: config.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true,
+        synchronize: false,
         autoLoadEntities: true,
-        migrationsRun: true,
+        migrationsRun: false,
       }),
     }),
     AuthModule,
@@ -57,6 +58,7 @@ import { EquipmentStateHistoryModule } from './equipment-state-history/equipment
     TypeEquipementModule,
     TypeStateModule,
     EquipmentStateHistoryModule,
+    RepairsModule,
   ],
   providers: [
     {
