@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Equipment } from '../../equipments/entities/equipment.entity';
 
-@Entity('TypeState')
+@Entity('type_state')
 export class TypeState {
   @PrimaryGeneratedColumn('uuid')
   id: string;
