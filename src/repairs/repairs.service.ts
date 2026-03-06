@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { Reparation } from './entities/repair.entity';
+import { Repair } from './entities/repair.entity';
 import { CreateReparationDto } from './dto/create-repair.dto';
 import { UpdateReparationDto } from './dto/update-repair.dto';
 import { FilterReparationDto } from './dto/filter-repair-dto';
@@ -15,8 +15,8 @@ import { User } from '../users/entities/user.entity';
 @Injectable()
 export class RepairsService {
   constructor(
-    @InjectRepository(Reparation)
-    private repairRepo: Repository<Reparation>,
+    @InjectRepository(Repair)
+    private repairRepo: Repository<Repair>,
     @InjectRepository(Equipment)
     private equipmentRepo: Repository<Equipment>,
     @InjectRepository(User)

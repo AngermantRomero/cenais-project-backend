@@ -13,7 +13,7 @@ import { Equipment } from '../../equipments/entities/equipment.entity';
 import { User } from '../../users/entities/user.entity';
 
 @Entity('repair')
-export class Reparation {
+export class Repair {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -49,7 +49,7 @@ export class Reparation {
   equipment: Equipment;
 
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
-  @Column({ name: 'equipment_id' })
+  @Column({ name: 'equipment_id', nullable: false })
   equipmentId: string;
 
   @ApiProperty({ type: () => User, required: false })
