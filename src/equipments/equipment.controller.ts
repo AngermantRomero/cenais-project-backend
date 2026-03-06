@@ -8,6 +8,8 @@ import {
   HttpStatus,
   HttpCode,
   Patch,
+  ParseUUIDPipe,
+  Query,
 } from '@nestjs/common';
 import { EquipmentsService } from './equipment.service';
 import { CreateEquipmentDto } from './dto/create-equipment.dto';
@@ -20,6 +22,7 @@ import {
   ApiBody,
   ApiParam,
   ApiExtraModels,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { EquipmentDto } from './dto/equipment.dto';
 import { ApiStandardResponse } from 'src/common/decorators/api-standard-response.decorator';
@@ -71,6 +74,45 @@ export class EquipmentsController {
   )
   async findAll(): Promise<Equipment[]> {
     return this.equipmentsService.findAll();
+  }
+
+  @Get('site/:siteId/paginated')
+  @ApiOperation({
+    summary: 'Obtener equipos por sitio (paginado)',
+    description: 'Retorna equipos de un sitio específico con paginación',
+  })
+  @ApiParam({ name: 'siteId', type: String, format: 'uuid' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiResponse({
+    status: 200,
+    description: 'Equipos encontrados',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/Equipment' },
+        },
+        total: { type: 'number' },
+        page: { type: 'number' },
+        totalPages: { type: 'number' },
+      },
+    },
+  })
+  async findBySitePaginated(
+    @Param('siteId', ParseUUIDPipe) siteId: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '10',
+  ) {
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+
+    return this.equipmentsService.findBySitePaginated(
+      siteId,
+      pageNum,
+      limitNum,
+    );
   }
   @Get('site/:siteId')
   @ApiOperation({

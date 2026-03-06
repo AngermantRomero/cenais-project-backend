@@ -5,7 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, Between } from 'typeorm';
 import { Equipment } from './entities/equipment.entity';
 import { CreateEquipmentDto } from './dto/create-equipment.dto';
 import { UpdateEquipmentDto } from './dto/update-equipment.dto';
@@ -16,6 +16,7 @@ import { TypeEquipement } from 'src/type-equipement/entities/type-equipement.ent
 import { TypeState } from 'src/type-state/entities/type-state.entity';
 import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
 import { Sites } from 'src/sites/entities/sites.entity';
+import { PaginatedResponse } from './interface/equipment.interface';
 @Injectable()
 export class EquipmentsService {
   constructor(
@@ -114,7 +115,14 @@ export class EquipmentsService {
   async findOne(id: string): Promise<Equipment> {
     const equipment = await this.equipmentRepository.findOne({
       where: { id },
-      relations: ['maker', 'model', 'typeEquipement', 'currentState'],
+      relations: [
+        'maker',
+        'model',
+        'typeEquipement',
+        'currentState',
+        'site',
+        'site.province',
+      ],
     });
 
     if (!equipment) {
@@ -146,7 +154,7 @@ export class EquipmentsService {
       if (updateDto.makerId) {
         equipment.maker = await this.validateMaker(
           updateDto.makerId,
-          transactionalEntityManager, // ✅ AHORA SÍ existe
+          transactionalEntityManager,
         );
       }
 
@@ -160,14 +168,14 @@ export class EquipmentsService {
         equipment.model = await this.validateModel(
           updateDto.modelId,
           makerId,
-          transactionalEntityManager, // ✅ AHORA SÍ existe
+          transactionalEntityManager,
         );
       }
 
       if (updateDto.typeEquipementId) {
         equipment.typeEquipement = await this.validateTypeEquipement(
           updateDto.typeEquipementId,
-          transactionalEntityManager, // ✅ AHORA SÍ existe
+          transactionalEntityManager,
         );
       }
 
@@ -176,7 +184,7 @@ export class EquipmentsService {
         equipment.site = updateDto.siteId
           ? await this.validateSite(
               updateDto.siteId,
-              transactionalEntityManager, // ✅ AHORA SÍ existe
+              transactionalEntityManager,
             )
           : null;
       }
@@ -188,7 +196,7 @@ export class EquipmentsService {
       ) {
         const newState = await this.validateInitialState(
           updateDto.currentStateId,
-          transactionalEntityManager, // ✅ AHORA SÍ existe
+          transactionalEntityManager,
         );
 
         equipment.currentState = newState;
@@ -202,7 +210,7 @@ export class EquipmentsService {
         });
       }
 
-      // 6. Guardar todo en la misma transacción
+      // Guardar todo en la misma transacción
       const updatedEquipment = await transactionalEntityManager.save(equipment);
 
       this.logger.log(`Equipo actualizado con ID: ${updatedEquipment.id}`);
@@ -219,9 +227,23 @@ export class EquipmentsService {
 
   // --- Métodos de consulta ---
   async findByDate(date: string): Promise<Equipment[]> {
+    // Validar formato de fecha
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) {
+      throw new BadRequestException(
+        'Formato de fecha inválido. Use YYYY-MM-DD',
+      );
+    }
+
+    const startDate = new Date(date);
+    const endDate = new Date(date);
+    endDate.setDate(endDate.getDate() + 1);
+
     return this.equipmentRepository.find({
-      where: { startOfOperation: new Date(date) },
-      relations: ['maker', 'model'],
+      where: {
+        startOfOperation: Between(startDate, endDate),
+      },
+      relations: ['maker', 'model', 'site'],
       order: { startOfOperation: 'DESC' },
     });
   }
@@ -229,7 +251,7 @@ export class EquipmentsService {
   async findBySerialNumber(serialNumber: string): Promise<Equipment> {
     const equipment = await this.equipmentRepository.findOne({
       where: { serialNumber },
-      relations: ['maker', 'model'],
+      relations: ['maker', 'model', 'typeEquipement', 'currentState', 'site'],
     });
 
     if (!equipment) {
@@ -244,14 +266,14 @@ export class EquipmentsService {
   async findByMaker(makerId: string): Promise<Equipment[]> {
     return this.equipmentRepository.find({
       where: { maker: { idMaker: makerId } },
-      relations: ['model'],
+      relations: ['model', 'currentState', 'site'],
     });
   }
 
   async findByModel(modelId: string): Promise<Equipment[]> {
     return this.equipmentRepository.find({
       where: { model: { id: modelId } },
-      relations: ['maker'],
+      relations: ['maker', 'currentState', 'site'],
     });
   }
 
@@ -285,6 +307,26 @@ export class EquipmentsService {
       relations: ['maker', 'model', 'currentState'],
       order: { inventoryNumber: 'ASC' },
     });
+  }
+  async findBySitePaginated(
+    siteId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginatedResponse<Equipment>> {
+    const [data, total] = await this.equipmentRepository.findAndCount({
+      where: { site: { id: siteId } },
+      relations: ['maker', 'model', 'currentState'],
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { inventoryNumber: 'ASC' },
+    });
+
+    return {
+      data,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
   async getStateHistory(id: string): Promise<EquipmentStateHistory[]> {
     // Verificar que el equipo existe
@@ -357,12 +399,12 @@ export class EquipmentsService {
     const existing = await query.getOne();
 
     const errors: string[] = [];
-    /* if (existing?.serialNumber === dto.serialNumber) {
+    if (existing?.serialNumber === dto.serialNumber) {
       errors.push(`Serial ${dto.serialNumber} ya existe`);
     }
     if (existing?.inventoryNumber === dto.inventoryNumber) {
       errors.push(`Inventario ${dto.inventoryNumber} ya existe`);
-    } */
+    }
 
     if (errors.length > 0) {
       throw new BadRequestException({ message: 'Error de validación', errors });
@@ -425,7 +467,7 @@ export class EquipmentsService {
   async findByCurrentState(stateId: string): Promise<Equipment[]> {
     return this.equipmentRepository.find({
       where: { currentState: { id: stateId } },
-      relations: ['maker', 'model', 'typeEquipement', 'currentState'],
+      relations: ['maker', 'model', 'typeEquipement', 'currentState', 'site'],
       order: { inventoryNumber: 'ASC' },
     });
   }

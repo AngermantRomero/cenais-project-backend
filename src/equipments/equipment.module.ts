@@ -12,7 +12,7 @@ import { TypeStateModule } from 'src/type-state/type-state.module';
 import { TypeEquipementModule } from 'src/type-equipement/type-equipement.module';
 import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
 import { Sites } from 'src/sites/entities/sites.entity';
-import { Reparation } from 'src/repairs/entities/repair.entity';
+import { Repair } from 'src/repairs/entities/repair.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -23,7 +23,7 @@ import { Reparation } from 'src/repairs/entities/repair.entity';
       TypeEquipement,
       EquipmentStateHistory,
       Sites,
-      Reparation,
+      Repair,
     ]),
     EquipmentStateHistoryModule,
     TypeStateModule,

@@ -12,7 +12,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Equipment } from '../../equipments/entities/equipment.entity';
 import { User } from '../../users/entities/user.entity';
 
-@Entity('repair')
+@Entity('repairs')
 export class Repair {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   @PrimaryGeneratedColumn('uuid')

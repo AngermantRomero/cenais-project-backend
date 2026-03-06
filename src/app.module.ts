@@ -56,9 +56,9 @@ import { RepairsModule } from './repairs/repairs.module';
     SitesModule,
     RolesModule,
     UsersModule,
+    RepairsModule,
     EquipmentsModule,
     EquipmentStateHistoryModule,
-    RepairsModule,
     AuthModule,
   ],
   providers: [

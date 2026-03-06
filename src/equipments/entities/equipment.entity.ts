@@ -7,13 +7,13 @@ import {
   OneToMany,
 } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
-import { Maker } from 'src/maker/entities/maker.entity';
-import { Model } from 'src/model/entities/model.entity';
-import { TypeEquipement } from 'src/type-equipement/entities/type-equipement.entity';
-import { TypeState } from 'src/type-state/entities/type-state.entity';
-import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
-import { Sites } from 'src/sites/entities/sites.entity';
-import { Repair } from 'src/repairs/entities/repair.entity';
+import { Maker } from '../../maker/entities/maker.entity';
+import { Model } from '../../model/entities/model.entity';
+import { TypeEquipement } from '../../type-equipement/entities/type-equipement.entity';
+import { TypeState } from '../../type-state/entities/type-state.entity';
+import { EquipmentStateHistory } from '../../equipment-state-history/entities/equipement-state-history.entity';
+import { Sites } from '../../sites/entities/sites.entity';
+import { Repair } from '../../repairs/entities/repair.entity';
 
 @Entity('equipment')
 export class Equipment {
@@ -98,6 +98,6 @@ export class Equipment {
   stateHistory: EquipmentStateHistory[];
 
   // Relación con reparaciones
-  @OneToMany(() => Repair, (reparation) => reparation.equipment)
+  @OneToMany(() => Repair, (repair) => repair.equipment)
   repairs: Repair[];
 }
