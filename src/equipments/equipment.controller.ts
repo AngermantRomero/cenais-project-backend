@@ -72,25 +72,40 @@ export class EquipmentsController {
   async findAll(): Promise<Equipment[]> {
     return this.equipmentsService.findAll();
   }
-  @Get(':id')
+  @Get('site/:siteId')
   @ApiOperation({
-    summary: 'Obtener equipo por ID',
-    description: 'Busca un equipo específico por su UUID',
+    summary: 'Equipos por sitio',
+    description: 'Obtiene todos los equipos ubicados en un sitio específico',
   })
-  @ApiParam({
-    name: 'id',
-    type: String,
-    example: '550e8400-e29b-41d4-a716-446655440000',
+  @ApiParam({ name: 'siteId', type: String })
+  @ApiStandardArrayResponse(EquipmentDto, HttpStatus.OK, 'Equipos encontrados')
+  async findBySite(@Param('siteId') siteId: string): Promise<Equipment[]> {
+    return this.equipmentsService.findBySite(siteId);
+  }
+  @Get('serial/:serialNumber')
+  @ApiOperation({
+    summary: 'Buscar equipo por número de serie',
+    description: 'Obtiene un equipo por su número de serie único',
   })
-  @ApiStandardResponse(EquipmentDto, HttpStatus.OK, 'Operación exitosa')
-  @ApiErrorResponse(HttpStatus.UNAUTHORIZED, 'No autorizado')
-  @ApiErrorResponse(HttpStatus.BAD_REQUEST, 'Datos inválidos')
-  @ApiErrorResponse(
-    HttpStatus.INTERNAL_SERVER_ERROR,
-    'Error interno del servidor',
-  )
-  async findOne(@Param('id') id: string): Promise<Equipment> {
-    return this.equipmentsService.findOne(id);
+  @ApiParam({ name: 'serialNumber', type: String })
+  @ApiStandardResponse(EquipmentDto, HttpStatus.OK, 'Equipo encontrado')
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, 'Equipo no encontrado')
+  async findBySerialNumber(
+    @Param('serialNumber') serialNumber: string,
+  ): Promise<Equipment> {
+    return this.equipmentsService.findBySerialNumber(serialNumber);
+  }
+  @Get('state/:stateId')
+  @ApiOperation({
+    summary: 'Equipos por estado actual',
+    description: 'Obtiene todos los equipos con un estado específico',
+  })
+  @ApiParam({ name: 'stateId', type: String })
+  @ApiStandardArrayResponse(EquipmentDto, HttpStatus.OK, 'Equipos encontrados')
+  async findByCurrentState(
+    @Param('stateId') stateId: string,
+  ): Promise<Equipment[]> {
+    return this.equipmentsService.findByCurrentState(stateId);
   }
   @Get(':id/state-history')
   @ApiOperation({
@@ -156,6 +171,43 @@ export class EquipmentsController {
   ): Promise<Equipment> {
     return this.equipmentsService.update(id, updateEquipmentDto);
   }
+  @Patch(':id/state')
+  @ApiOperation({
+    summary: 'Cambiar estado del equipo',
+    description:
+      'Actualiza el estado actual del equipo y registra en historial',
+  })
+  @ApiParam({ name: 'id', type: String })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        stateId: {
+          type: 'string',
+          format: 'uuid',
+          example: '550e8400-e29b-41d4-a716-446655440000',
+        },
+        changedBy: {
+          type: 'string',
+          example: 'admin@example.com',
+          default: 'system',
+        },
+      },
+    },
+  })
+  @ApiStandardResponse(EquipmentDto, HttpStatus.OK, 'Estado actualizado')
+  @ApiErrorResponse(HttpStatus.NOT_FOUND, 'Equipo o estado no encontrado')
+  async changeState(
+    @Param('id') id: string,
+    @Body('stateId') stateId: string,
+    @Body('changedBy') changedBy?: string,
+  ): Promise<Equipment> {
+    return this.equipmentsService.changeEquipmentState(
+      id,
+      stateId,
+      changedBy || 'system',
+    );
+  }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -167,7 +219,6 @@ export class EquipmentsController {
   @ApiParam({
     name: 'id',
     type: 'string',
-    format: 'uuid',
     example: '3fa85f64-5717-4562-b3fc-2c963f66afa6',
     description: 'ID único del equipo en formato UUIDv4',
   })
@@ -185,20 +236,5 @@ export class EquipmentsController {
   async remove(@Param('id') id: string) {
     await this.equipmentsService.remove(id);
     return null;
-  }
-
-  @Get('by-date/:date')
-  @ApiOperation({
-    summary: 'Equipos por fecha',
-    description: 'Busca equipos por fecha de operación',
-  })
-  @ApiParam({ name: 'date', type: String, example: '2023-01-15' })
-  @ApiResponse({
-    status: 200,
-    description: 'Equipos encontrados',
-    type: [Equipment],
-  })
-  async findByDate(@Param('date') date: string): Promise<Equipment[]> {
-    return this.equipmentsService.findByDate(date);
   }
 }

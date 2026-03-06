@@ -12,7 +12,8 @@ import { Model } from 'src/model/entities/model.entity';
 import { TypeEquipement } from 'src/type-equipement/entities/type-equipement.entity';
 import { TypeState } from 'src/type-state/entities/type-state.entity';
 import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
-import { Reparation } from 'src/repairs/entities/repair.entity';
+import { Sites } from 'src/sites/entities/sites.entity';
+import { Repair } from 'src/repairs/entities/repair.entity';
 
 @Entity('equipment')
 export class Equipment {
@@ -32,51 +33,48 @@ export class Equipment {
   inventoryNumber: string;
 
   @ApiProperty({
+    type: () => Sites,
+    description: 'Sitio donde está ubicado el equipo',
+  })
+  @ManyToOne(() => Sites, (site) => site.equipments, {
+    eager: false,
+    nullable: true,
+  })
+  @JoinColumn({ name: 'site_id' })
+  site: Sites | null;
+
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'ID del sitio',
+    required: false,
+  })
+  @Column({ name: 'site_id', nullable: true })
+  siteId: string;
+
+  @ApiProperty({
     example: '2023-01-15',
     description: 'Fecha de inicio de explotación',
   })
   @Column({ name: 'start_of_operation', type: 'date' })
   startOfOperation: Date;
 
-  @ApiProperty({
-    example: '550e8400-e29b-41d4-a716-446655440000',
-    description: 'ID del fabricante',
-  })
-  @Column({ name: 'idMaker', type: 'varchar', length: 36 })
-  idMaker: string;
-
-  @ApiProperty({
-    example: '550e8400-e29b-41d4-a716-446655440000',
-    description: 'ID del tipo de equipo',
-  })
-  @Column({ name: 'type_equipement_id', type: 'varchar', length: 36 })
-  type_equipement_id: string;
-
-  @ApiProperty({
-    example: '550e8400-e29b-41d4-a716-446655440000',
-    description: 'ID del estado actual',
-    nullable: true,
-  })
-  @Column({
-    name: 'current_state_id',
-    type: 'varchar',
-    length: 36,
-    nullable: true,
-  })
-  current_state_id: string;
-
-  // Relaciones
-  @ApiProperty({ type: () => Maker, description: 'Fabricante del equipo' })
+  // Relación con Maker (CORREGIDA)
   @ManyToOne(() => Maker, (maker) => maker.equipement)
-  @JoinColumn({ name: 'idMaker' })
+  @JoinColumn({ name: 'maker_id' })
   maker: Maker;
 
-  @ApiProperty({ type: () => Model, description: 'Modelo del equipo' })
+  @Column({ name: 'maker_id', nullable: true })
+  makerId: string;
+
+  // Relación con Model (CORREGIDA)
   @ManyToOne(() => Model, (model) => model.equipments)
-  @JoinColumn({ name: 'id' }) // ⚠️ Verifica si este name es correcto
+  @JoinColumn({ name: 'model_id' })
   model: Model;
 
-  @ApiProperty({ type: () => TypeEquipement, description: 'Tipo de equipo' })
+  @Column({ name: 'model_id', nullable: true })
+  modelId: string;
+
+  // Relación con TypeEquipement (VERIFICAR)
   @ManyToOne(
     () => TypeEquipement,
     (typeEquipement) => typeEquipement.equipement,
@@ -84,22 +82,22 @@ export class Equipment {
   @JoinColumn({ name: 'type_equipement_id' })
   typeEquipement: TypeEquipement;
 
-  @ApiProperty({
-    type: () => TypeState,
-    description: 'Estado actual del equipo',
-    nullable: true,
-  })
-  @ManyToOne(() => TypeState, { nullable: true })
+  @Column({ name: 'type_equipement_id', nullable: true })
+  typeEquipementId: string;
+
+  // Relación con TypeState
+  @ManyToOne(() => TypeState, { eager: true })
   @JoinColumn({ name: 'current_state_id' })
   currentState: TypeState;
 
-  @ApiProperty({
-    type: () => [EquipmentStateHistory],
-    description: 'Histórico de estados del equipo',
-  })
+  @Column({ name: 'current_state_id', nullable: true })
+  currentStateId: string;
+
+  // Relación con historial de estados
   @OneToMany(() => EquipmentStateHistory, (history) => history.equipment)
   stateHistory: EquipmentStateHistory[];
 
-  @OneToMany(() => Reparation, (repair) => repair.equipment)
-  repairs: Reparation[];
+  // Relación con reparaciones
+  @OneToMany(() => Repair, (reparation) => reparation.equipment)
+  repairs: Repair[];
 }
