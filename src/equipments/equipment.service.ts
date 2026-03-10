@@ -17,6 +17,7 @@ import { TypeState } from 'src/type-state/entities/type-state.entity';
 import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
 import { Sites } from 'src/sites/entities/sites.entity';
 import { PaginatedResponse } from './interface/equipment.interface';
+import { Repair } from '../repairs/entities/repair.entity';
 @Injectable()
 export class EquipmentsService {
   constructor(
@@ -35,6 +36,8 @@ export class EquipmentsService {
     private readonly historyRepository: Repository<EquipmentStateHistory>,
     @InjectRepository(Sites)
     private readonly siteRepository: Repository<Sites>,
+    @InjectRepository(Repair)
+    private readonly repairRepository: Repository<Repair>,
 
     private readonly dataSource: DataSource,
   ) {}
@@ -219,9 +222,50 @@ export class EquipmentsService {
   }
 
   async remove(id: string): Promise<void> {
-    const result = await this.equipmentRepository.delete(id);
-    if (result.affected === 0) {
-      throw new NotFoundException(`Equipo con ID ${id} no encontrado`);
+    this.logger.log(`🗑️ Eliminando equipo ${id}`);
+
+    try {
+      // 1. Verificar si el equipo existe
+      const equipment = await this.equipmentRepository.findOne({
+        where: { id },
+        relations: ['repairs', 'stateHistory'],
+      });
+
+      if (!equipment) {
+        throw new NotFoundException(`Equipo con ID ${id} no encontrado`);
+      }
+
+      // 2. Verificar si tiene reparaciones
+      if (equipment.repairs && equipment.repairs.length > 0) {
+        this.logger.warn(
+          `⚠️ El equipo tiene ${equipment.repairs.length} reparaciones`,
+        );
+
+        // Opción A: Rechazar eliminación (más segura)
+        throw new BadRequestException(
+          `No se puede eliminar: el equipo tiene ${equipment.repairs.length} reparaciones asociadas. ` +
+            `Elimine las reparaciones primero.`,
+        );
+      }
+
+      if (equipment.stateHistory && equipment.stateHistory.length > 0) {
+        this.logger.log(
+          `📊 Eliminando ${equipment.stateHistory.length} registros de historial`,
+        );
+        await this.historyRepository.delete({ equipment: { id } });
+      }
+
+      // 4. Eliminar el equipo
+      const result = await this.equipmentRepository.delete(id);
+
+      if (result.affected === 0) {
+        throw new Error('No se pudo eliminar el equipo');
+      }
+
+      this.logger.log(`✅✅✅ Equipo ${id} eliminado correctamente`);
+    } catch (error) {
+      this.logger.error(`❌ Error eliminando equipo ${id}:`, error);
+      throw error;
     }
   }
 
@@ -385,29 +429,33 @@ export class EquipmentsService {
     dto: CreateEquipmentDto | UpdateEquipmentDto,
     excludeId?: string,
   ): Promise<void> {
-    const query = this.equipmentRepository
-      .createQueryBuilder('eq')
-      .where('eq.serialNumber = :serial OR eq.inventoryNumber = :inventory', {
-        serial: dto.serialNumber,
-        inventory: dto.inventoryNumber,
-      });
-
-    if (excludeId) {
-      query.andWhere('eq.id != :id', { id: excludeId });
-    }
-
-    const existing = await query.getOne();
-
     const errors: string[] = [];
-    if (existing?.serialNumber === dto.serialNumber) {
-      errors.push(`Serial ${dto.serialNumber} ya existe`);
+
+    // Solo validar serialNumber si viene en el DTO
+    if (dto.serialNumber !== undefined) {
+      const existing = await this.equipmentRepository.findOne({
+        where: { serialNumber: dto.serialNumber },
+      });
+      if (existing && existing.id !== excludeId) {
+        errors.push(`Serial ${dto.serialNumber} ya existe`);
+      }
     }
-    if (existing?.inventoryNumber === dto.inventoryNumber) {
-      errors.push(`Inventario ${dto.inventoryNumber} ya existe`);
+
+    // Solo validar inventoryNumber si viene en el DTO
+    if (dto.inventoryNumber !== undefined) {
+      const existing = await this.equipmentRepository.findOne({
+        where: { inventoryNumber: dto.inventoryNumber },
+      });
+      if (existing && existing.id !== excludeId) {
+        errors.push(`Inventario ${dto.inventoryNumber} ya existe`);
+      }
     }
 
     if (errors.length > 0) {
-      throw new BadRequestException({ message: 'Error de validación', errors });
+      throw new BadRequestException({
+        message: 'Error de validación',
+        errors,
+      });
     }
   }
 

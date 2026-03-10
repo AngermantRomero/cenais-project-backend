@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { Repair } from './entities/repair.entity';
@@ -55,6 +51,7 @@ export class RepairsService {
   async findAll(query: FilterReparationDto) {
     const where: any = {};
 
+    // Aplicar filtros si existen
     if (query.equipmentId) {
       where.equipmentId = query.equipmentId;
     }
@@ -67,31 +64,57 @@ export class RepairsService {
       where.status = query.status;
     }
 
-    if (query.startDateFrom && query.startDateTo) {
-      where.startDate = Between(
-        new Date(query.startDateFrom),
-        new Date(query.startDateTo),
-      );
-    }
+    if (query.startDate) {
+      const start = new Date(query.startDate);
+      start.setHours(0, 0, 0, 0);
+      if (query.endDate) {
+        // Caso 1: Tanto fecha inicio como fecha fin
+        const end = new Date(query.endDate);
+        end.setHours(23, 59, 59, 999); // Fin del día
 
+        where.startDate = Between(start, end);
+      } else {
+        where.startDate = Between(start, new Date('2099-12-31'));
+      }
+    } else if (query.endDate) {
+      // Caso 3: Solo fecha fin - buscar hasta esa fecha
+      const end = new Date(query.endDate);
+      end.setHours(23, 59, 59, 999);
+      where.startDate = Between(new Date('1970-01-01'), end); // Desde "el principio"
+    }
+    // Buscar con relaciones anidadas
     return await this.repairRepo.find({
       where,
-      relations: ['equipment', 'technician'],
-      order: { startDate: 'DESC', createdAt: 'DESC' },
+      relations: {
+        equipment: {
+          model: true,
+          maker: true,
+        },
+        technician: true,
+      },
+      order: {
+        startDate: 'DESC',
+        createdAt: 'DESC',
+      },
     });
   }
-
-  async findOne(id: string) {
-    const repair = await this.repairRepo.findOne({
+  async findOne(id: string): Promise<Repair> {
+    const reparation = await this.repairRepo.findOne({
       where: { id },
-      relations: ['equipment', 'technician'],
+      relations: {
+        equipment: {
+          model: true,
+          maker: true,
+        },
+        technician: true,
+      },
     });
 
-    if (!repair) {
+    if (!reparation) {
       throw new NotFoundException(`Reparación con ID ${id} no encontrada`);
     }
 
-    return repair;
+    return reparation;
   }
 
   async findByEquipment(equipmentId: string) {
@@ -103,32 +126,52 @@ export class RepairsService {
   }
 
   async update(id: string, updateDto: UpdateReparationDto) {
-    const repair = await this.findOne(id);
+    console.log('🔵 UPDATE - Recibido:', { id, updateDto });
 
-    // Verificar técnico si se actualiza
-    if (updateDto.technicianId) {
-      const technician = await this.userRepo.findOne({
-        where: { id: updateDto.technicianId },
-      });
-      if (!technician) {
-        throw new NotFoundException(
-          `Técnico con ID ${updateDto.technicianId} no encontrado`,
-        );
+    const repair = await this.findOne(id);
+    console.log('🔵 Repair actual:', {
+      id: repair.id,
+      technicianId: repair.technicianId,
+      technician: repair.technician,
+    });
+
+    // Si viene technicianId, validar que existe
+    if (updateDto.technicianId !== undefined) {
+      if (updateDto.technicianId === null) {
+        // Quitar técnico
+        repair.technician = null;
+        repair.technicianId = null;
+      } else {
+        // Asignar nuevo técnico
+        const technician = await this.userRepo.findOne({
+          where: { id: updateDto.technicianId },
+        });
+        if (!technician) {
+          throw new NotFoundException(
+            `Técnico con ID ${updateDto.technicianId} no encontrado`,
+          );
+        }
+        repair.technician = technician;
+        repair.technicianId = technician.id;
       }
     }
 
-    // Validar fechas si ambas están presentes
-    const startDate = updateDto.startDate || repair.startDate;
-    const endDate = updateDto.endDate || repair.endDate;
+    // Actualizar otros campos
+    if (updateDto.startDate) repair.startDate = updateDto.startDate;
+    if (updateDto.endDate !== undefined) repair.endDate = updateDto.endDate;
+    if (updateDto.description) repair.description = updateDto.description;
+    if (updateDto.status) repair.status = updateDto.status;
+    if (updateDto.observations !== undefined)
+      repair.observations = updateDto.observations;
 
-    if (endDate && new Date(endDate) < new Date(startDate)) {
-      throw new BadRequestException(
-        'La fecha de fin no puede ser menor a la fecha de inicio',
-      );
-    }
+    const updated = await this.repairRepo.save(repair);
+    console.log('🔵 Repair actualizado:', {
+      id: updated.id,
+      technicianId: updated.technicianId,
+      technician: updated.technician,
+    });
 
-    Object.assign(repair, updateDto);
-    return await this.repairRepo.save(repair);
+    return updated;
   }
 
   async remove(id: string) {

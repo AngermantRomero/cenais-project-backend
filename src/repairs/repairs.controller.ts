@@ -20,6 +20,7 @@ import { CreateReparationDto } from './dto/create-repair.dto';
 import { UpdateReparationDto } from './dto/update-repair.dto';
 import { FilterReparationDto } from './dto/filter-repair-dto';
 import { Repair } from './entities/repair.entity';
+import { filter } from 'rxjs';
 
 @ApiTags('Repairs')
 @ApiBearerAuth()
@@ -53,8 +54,8 @@ export class RepairsController {
     description: 'Lista de reparaciones',
     type: [Repair],
   })
-  findAll(@Query() query: FilterReparationDto) {
-    return this.reparationService.findAll(query);
+  findAll(@Query() filter: FilterReparationDto) {
+    return this.reparationService.findAll(filter);
   }
 
   @Get(':id')

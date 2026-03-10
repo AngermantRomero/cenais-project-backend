@@ -55,14 +55,14 @@ export class Repair {
   @ApiProperty({ type: () => User, required: false })
   @ManyToOne(() => User, { nullable: true, eager: false })
   @JoinColumn({ name: 'technician_id' })
-  technician: User;
+  technician: User | null;
 
   @ApiProperty({
     example: '550e8400-e29b-41d4-a716-446655440000',
     required: false,
   })
   @Column({ name: 'technician_id', nullable: true })
-  technicianId: string;
+  technicianId: string | null;
 
   @ApiProperty({ example: '2026-03-02T12:00:00Z' })
   @CreateDateColumn({ name: 'created_at' })
@@ -81,8 +81,6 @@ export class Repair {
       this.startDate = new Date(today.toISOString().split('T')[0]);
     }
 
-    // El status ya tiene 'in_progress' como default en la columna
-    // pero podemos asegurarnos aquí también
     if (!this.status) {
       this.status = 'in_progress';
     }
