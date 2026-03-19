@@ -15,7 +15,14 @@ import { EntityManager } from 'typeorm';
 import { TypeEquipement } from 'src/type-equipement/entities/type-equipement.entity';
 import { TypeState } from 'src/type-state/entities/type-state.entity';
 import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
+<<<<<<< Updated upstream
 
+=======
+import { Sites } from 'src/sites/entities/sites.entity';
+import { PaginatedResponse } from './interface/equipment.interface';
+import { Repair } from '../repairs/entities/repair.entity';
+import { User } from 'src/users/entities/user.entity';
+>>>>>>> Stashed changes
 @Injectable()
 export class EquipmentsService {
   constructor(
@@ -27,12 +34,21 @@ export class EquipmentsService {
     private readonly modelRepository: Repository<Model>,
     @InjectRepository(TypeState)
     private readonly typeStateRepository: Repository<TypeState>,
-    private readonly entityManager: EntityManager,
     @InjectRepository(TypeEquipement)
     private readonly typeEquipementRepository: Repository<TypeEquipement>,
     @InjectRepository(EquipmentStateHistory)
     private readonly historyRepository: Repository<EquipmentStateHistory>,
+<<<<<<< Updated upstream
     private readonly dataSource: DataSource,
+=======
+    @InjectRepository(Sites)
+    private readonly siteRepository: Repository<Sites>,
+    @InjectRepository(Repair)
+    private readonly repairRepository: Repository<Repair>,
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
+    private dataSource: DataSource,
+>>>>>>> Stashed changes
   ) {}
   private readonly logger = new Logger(EquipmentsService.name);
   async create(createDto: CreateEquipmentDto): Promise<Equipment> {
@@ -220,6 +236,105 @@ export class EquipmentsService {
 
     return typeEquipement;
   }
+<<<<<<< Updated upstream
+=======
+  async findBySite(siteId: string): Promise<Equipment[]> {
+    return this.equipmentRepository.find({
+      where: { site: { id: siteId } },
+      relations: ['maker', 'model', 'currentState'],
+      order: { inventoryNumber: 'ASC' },
+    });
+  }
+  async findBySitePaginated(
+    siteId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginatedResponse<Equipment>> {
+    const [data, total] = await this.equipmentRepository.findAndCount({
+      where: { site: { id: siteId } },
+      relations: ['maker', 'model', 'currentState'],
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { inventoryNumber: 'ASC' },
+    });
+
+    return {
+      data,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+  async getStateHistory(id: string): Promise<EquipmentStateHistory[]> {
+    // Verificar que el equipo existe
+    const equipmentExists = await this.equipmentRepository.existsBy({ id });
+    if (!equipmentExists) {
+      throw new NotFoundException(`Equipo con ID ${id} no encontrado`);
+    }
+
+    return this.historyRepository.find({
+      where: { equipment: { id } },
+      relations: ['state'],
+      order: { changedAt: 'DESC' },
+      select: {
+        id: true,
+        changedAt: true,
+        changedBy: true,
+        state: {
+          id: true,
+          name: true,
+          description: true,
+        },
+      },
+    });
+  }
+  async changeEquipmentState(
+    equipmentId: string,
+    newStateId: string,
+    userId?: string,
+  ): Promise<Equipment> {
+    return this.dataSource.transaction(async (manager) => {
+      // 1. Obtener el equipo
+      const equipment = await this.findOne(equipmentId);
+
+      // 2. Obtener el nuevo estado
+      const newState = await manager.findOne(TypeState, {
+        where: { id: newStateId },
+      });
+
+      if (!newState) {
+        throw new NotFoundException(
+          `Estado con ID ${newStateId} no encontrado`,
+        );
+      }
+
+      // 3. Obtener nombre del usuario
+      let changedBy = 'system';
+      if (userId) {
+        const user = await manager.findOne(User, {
+          where: { id: userId },
+        });
+        if (user) {
+          changedBy = `${user.name || ''} ${user.lastName || ''}`.trim();
+        }
+      }
+
+      // 4. Actualizar el estado del equipo
+      equipment.currentState = newState;
+      await manager.save(equipment);
+
+      // 5. Registrar en el historial
+      await manager.save(EquipmentStateHistory, {
+        equipment: { id: equipmentId },
+        state: newState,
+        changedBy: changedBy,
+        changedAt: new Date(),
+      });
+
+      return equipment;
+    });
+  }
+>>>>>>> Stashed changes
 
   private async validateUniqueFields(
     dto: CreateEquipmentDto | UpdateEquipmentDto,
