@@ -5,6 +5,7 @@ import {
   IsString,
   Length,
   IsUUID,
+  IsOptional,
 } from 'class-validator';
 
 export class CreateEquipmentDto {
@@ -30,7 +31,7 @@ export class CreateEquipmentDto {
     description: 'ID del fabricante',
   })
   @IsNotEmpty()
-  @IsString()
+  @IsUUID('4', { message: 'makerId debe ser un UUID válido' })
   makerId: string;
 
   @ApiProperty({
@@ -38,7 +39,7 @@ export class CreateEquipmentDto {
     description: 'ID del modelo',
   })
   @IsNotEmpty()
-  @IsString()
+  @IsUUID('4', { message: 'modelId debe ser un UUID válido' })
   modelId: string;
   @ApiProperty({
     example: '550e8400-e29b-41d4-a716-446655440000',
@@ -46,7 +47,7 @@ export class CreateEquipmentDto {
   })
   @IsNotEmpty()
   @IsString()
-  //@IsUUID()
+  @IsUUID('4', { message: 'typeEquipementId debe ser un UUID válido' })
   typeEquipementId: string;
   @ApiProperty({
     example: '550e8400-e29b-41d4-a716-446655440000',
@@ -54,6 +55,23 @@ export class CreateEquipmentDto {
     required: true,
   })
   @IsNotEmpty()
-  //@IsUUID()
+  @IsUUID('4', { message: 'initialStateId debe ser un UUID válido' })
   initialStateId: string;
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'ID del sitio donde está ubicado el equipo',
+    required: true,
+  })
+  @IsUUID('4', { message: 'siteId debe ser un UUID válido' })
+  siteId?: string;
+
+  @ApiProperty({
+    example: 'admin@example.com',
+    description: 'Usuario que realiza la creación',
+    required: false,
+    default: 'system',
+  })
+  @IsOptional()
+  @IsString()
+  changedBy?: string;
 }

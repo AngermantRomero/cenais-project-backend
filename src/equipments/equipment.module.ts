@@ -11,12 +11,10 @@ import { TypeEquipement } from '../type-equipement/entities/type-equipement.enti
 import { TypeStateModule } from 'src/type-state/type-state.module';
 import { TypeEquipementModule } from 'src/type-equipement/type-equipement.module';
 import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
-<<<<<<< Updated upstream
-=======
 import { Sites } from 'src/sites/entities/sites.entity';
 import { Repair } from 'src/repairs/entities/repair.entity';
 import { User } from 'src/users/entities/user.entity';
->>>>>>> Stashed changes
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -26,12 +24,9 @@ import { User } from 'src/users/entities/user.entity';
       TypeState,
       TypeEquipement,
       EquipmentStateHistory,
-<<<<<<< Updated upstream
-=======
       Sites,
       Repair,
       User,
->>>>>>> Stashed changes
     ]),
     EquipmentStateHistoryModule,
     TypeStateModule,

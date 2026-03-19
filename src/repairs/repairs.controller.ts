@@ -19,7 +19,8 @@ import { RepairsService } from './repairs.service';
 import { CreateReparationDto } from './dto/create-repair.dto';
 import { UpdateReparationDto } from './dto/update-repair.dto';
 import { FilterReparationDto } from './dto/filter-repair-dto';
-import { Reparation } from './entities/repair.entity';
+import { Repair } from './entities/repair.entity';
+import { filter } from 'rxjs';
 
 @ApiTags('Repairs')
 @ApiBearerAuth()
@@ -32,7 +33,7 @@ export class RepairsController {
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Reparación creada',
-    type: Reparation,
+    type: Repair,
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -51,10 +52,10 @@ export class RepairsController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Lista de reparaciones',
-    type: [Reparation],
+    type: [Repair],
   })
-  findAll(@Query() query: FilterReparationDto) {
-    return this.reparationService.findAll(query);
+  findAll(@Query() filter: FilterReparationDto) {
+    return this.reparationService.findAll(filter);
   }
 
   @Get(':id')
@@ -62,7 +63,7 @@ export class RepairsController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Reparación encontrada',
-    type: Reparation,
+    type: Repair,
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -77,7 +78,7 @@ export class RepairsController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Reparación actualizada',
-    type: Reparation,
+    type: Repair,
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
@@ -96,7 +97,7 @@ export class RepairsController {
   @ApiResponse({
     status: HttpStatus.OK,
     description: 'Reparación completada',
-    type: Reparation,
+    type: Repair,
   })
   @ApiResponse({
     status: HttpStatus.NOT_FOUND,
