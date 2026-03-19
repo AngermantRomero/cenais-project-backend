@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, DataSource } from 'typeorm';
 import { Repair } from './entities/repair.entity';
 import { CreateReparationDto } from './dto/create-repair.dto';
 import { UpdateReparationDto } from './dto/update-repair.dto';
 import { FilterReparationDto } from './dto/filter-repair-dto';
 import { Equipment } from '../equipments/entities/equipment.entity';
 import { User } from '../users/entities/user.entity';
+import { TypeState } from '../type-state/entities/type-state.entity';
+import { EquipmentStateHistory } from '../equipment-state-history/entities/equipement-state-history.entity';
 
 @Injectable()
 export class RepairsService {
@@ -17,35 +19,50 @@ export class RepairsService {
     private equipmentRepo: Repository<Equipment>,
     @InjectRepository(User)
     private userRepo: Repository<User>,
+    @InjectRepository(TypeState)
+    private typeStateRepo: Repository<TypeState>,
+    @InjectRepository(EquipmentStateHistory)
+    private historyRepo: Repository<EquipmentStateHistory>,
+    private dataSource: DataSource,
   ) {}
 
-  async create(createDto: CreateReparationDto) {
-    // Verificar que el equipo existe
-    const equipment = await this.equipmentRepo.findOne({
-      where: { id: createDto.equipmentId },
-    });
-    if (!equipment) {
-      throw new NotFoundException(
-        `Equipment with ID ${createDto.equipmentId} not found`,
-      );
-    }
+  async create(createDto: CreateReparationDto, userId?: string) {
+    return this.dataSource.transaction(async (manager) => {
+      // 1. Crear la reparación
+      const repair = manager.create(Repair, createDto);
+      const savedRepair = await manager.save(repair);
 
-    // Verificar técnico si se proporciona
-    if (createDto.technicianId) {
-      const technician = await this.userRepo.findOne({
-        where: { id: createDto.technicianId },
+      // 2. Obtener el estado "En reparación"
+      const inRepairState = await manager.findOne(TypeState, {
+        where: { name: 'En reparación' },
       });
-      if (!technician) {
-        throw new NotFoundException(
-          `Técnico con ID ${createDto.technicianId} no encontrado`,
-        );
+
+      if (inRepairState) {
+        // 3. Obtener nombre del usuario si se proporcionó
+        let changedBy = 'system';
+        if (userId) {
+          const user = await manager.findOne(User, { where: { id: userId } });
+          changedBy = user
+            ? `${user.name} ${user.lastName || ''}`.trim()
+            : 'system';
+        }
+
+        // 4. Actualizar el estado del equipo
+        await manager.update(Equipment, createDto.equipmentId, {
+          currentState: inRepairState,
+        });
+
+        // 5. Registrar en el historial con el nombre del usuario
+        await manager.save(EquipmentStateHistory, {
+          equipment: { id: createDto.equipmentId },
+          state: inRepairState,
+          changedBy: changedBy,
+          changedAt: new Date(),
+        });
       }
-    }
 
-    // Validar fechas
-
-    const repair = this.repairRepo.create(createDto);
-    return await this.repairRepo.save(repair);
+      return savedRepair;
+    });
   }
 
   async findAll(query: FilterReparationDto) {
@@ -64,24 +81,24 @@ export class RepairsService {
       where.status = query.status;
     }
 
+    // Filtro por fechas
     if (query.startDate) {
       const start = new Date(query.startDate);
       start.setHours(0, 0, 0, 0);
-      if (query.endDate) {
-        // Caso 1: Tanto fecha inicio como fecha fin
-        const end = new Date(query.endDate);
-        end.setHours(23, 59, 59, 999); // Fin del día
 
+      if (query.endDate) {
+        const end = new Date(query.endDate);
+        end.setHours(23, 59, 59, 999);
         where.startDate = Between(start, end);
       } else {
         where.startDate = Between(start, new Date('2099-12-31'));
       }
     } else if (query.endDate) {
-      // Caso 3: Solo fecha fin - buscar hasta esa fecha
       const end = new Date(query.endDate);
       end.setHours(23, 59, 59, 999);
-      where.startDate = Between(new Date('1970-01-01'), end); // Desde "el principio"
+      where.startDate = Between(new Date('1970-01-01'), end);
     }
+
     // Buscar con relaciones anidadas
     return await this.repairRepo.find({
       where,
@@ -98,8 +115,9 @@ export class RepairsService {
       },
     });
   }
+
   async findOne(id: string): Promise<Repair> {
-    const reparation = await this.repairRepo.findOne({
+    const repair = await this.repairRepo.findOne({
       where: { id },
       relations: {
         equipment: {
@@ -110,11 +128,11 @@ export class RepairsService {
       },
     });
 
-    if (!reparation) {
+    if (!repair) {
       throw new NotFoundException(`Reparación con ID ${id} no encontrada`);
     }
 
-    return reparation;
+    return repair;
   }
 
   async findByEquipment(equipmentId: string) {
@@ -180,14 +198,54 @@ export class RepairsService {
   }
 
   async completeRepair(id: string, observations?: string) {
-    const repair = await this.findOne(id);
+    return this.dataSource.transaction(async (manager) => {
+      // 1. Obtener la reparación
+      const repair = await manager.findOne(Repair, {
+        where: { id },
+        relations: ['equipment'],
+      });
 
-    repair.status = 'completed';
-    repair.endDate = new Date();
-    if (observations) {
-      repair.observations = observations;
-    }
+      if (!repair) {
+        throw new NotFoundException('Reparación no encontrada');
+      }
 
-    return await this.repairRepo.save(repair);
+      // 2. Actualizar la reparación
+      repair.status = 'completed';
+      repair.endDate = new Date();
+      if (observations) {
+        repair.observations = observations;
+      }
+      await manager.save(repair);
+
+      // 3. Verificar si hay otras reparaciones activas para este equipo
+      const activeRepairs = await manager.count(Repair, {
+        where: {
+          equipment: { id: repair.equipmentId },
+          status: 'in_progress',
+        },
+      });
+
+      // 4. Si no hay reparaciones activas, cambiar estado a "Operacional"
+      if (activeRepairs === 0) {
+        const operationalState = await manager.findOne(TypeState, {
+          where: { name: 'Operacional' },
+        });
+
+        if (operationalState) {
+          await manager.update(Equipment, repair.equipmentId, {
+            currentState: operationalState,
+          });
+
+          await manager.save(EquipmentStateHistory, {
+            equipment: { id: repair.equipmentId },
+            state: operationalState,
+            changedBy: 'system',
+            changedAt: new Date(),
+          });
+        }
+      }
+
+      return repair;
+    });
   }
 }

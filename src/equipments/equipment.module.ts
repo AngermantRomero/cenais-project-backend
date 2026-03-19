@@ -13,6 +13,8 @@ import { TypeEquipementModule } from 'src/type-equipement/type-equipement.module
 import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
 import { Sites } from 'src/sites/entities/sites.entity';
 import { Repair } from 'src/repairs/entities/repair.entity';
+import { User } from 'src/users/entities/user.entity';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -24,6 +26,7 @@ import { Repair } from 'src/repairs/entities/repair.entity';
       EquipmentStateHistory,
       Sites,
       Repair,
+      User,
     ]),
     EquipmentStateHistoryModule,
     TypeStateModule,

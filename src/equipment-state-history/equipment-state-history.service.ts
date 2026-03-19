@@ -18,8 +18,9 @@ export class EquipmentStateHistoryService {
     private readonly stateRepo: Repository<TypeState>,
   ) {}
 
+  // ==================== MÉTODOS EXISTENTES ====================
+
   async create(createDto: CreateEquipmentStateHistoryDto) {
-    // Verificar que el equipo existe
     const equipment = await this.equipmentRepo.findOne({
       where: { id: createDto.equipmentId },
     });
@@ -29,7 +30,6 @@ export class EquipmentStateHistoryService {
       );
     }
 
-    // Verificar que el estado existe
     const state = await this.stateRepo.findOne({
       where: { id: createDto.stateId },
     });
@@ -101,5 +101,136 @@ export class EquipmentStateHistoryService {
       order: { changedAt: 'DESC' },
       relations: ['state'],
     });
+  }
+
+  // ==================== NUEVOS MÉTODOS ====================
+
+  /**
+   * Obtener los últimos cambios de estado de todos los equipos
+   * @param limit Número máximo de registros a devolver
+   */
+  async getLatestStateChanges(
+    limit: number = 10,
+  ): Promise<EquipmentStateHistory[]> {
+    return this.historyRepo.find({
+      relations: ['equipment', 'state'],
+      order: { changedAt: 'DESC' },
+      take: limit,
+    });
+  }
+
+  /**
+   * Calcular el tiempo que un equipo pasó en cada estado
+   * @param equipmentId ID del equipo
+   */
+  async getTimeInStates(equipmentId: string): Promise<any> {
+    const history = await this.historyRepo.find({
+      where: { equipment: { id: equipmentId } },
+      relations: ['state'],
+      order: { changedAt: 'ASC' },
+    });
+
+    if (history.length === 0) {
+      return {};
+    }
+
+    const totalTime: any = {};
+
+    for (let i = 0; i < history.length; i++) {
+      const current = history[i];
+      const next = history[i + 1];
+
+      if (next) {
+        // Tiempo entre este cambio y el siguiente
+        const duration = next.changedAt.getTime() - current.changedAt.getTime();
+        const hours = duration / (1000 * 60 * 60);
+
+        if (!totalTime[current.state.name]) {
+          totalTime[current.state.name] = 0;
+        }
+        totalTime[current.state.name] += hours;
+      } else {
+        // Si es el último registro, calcular hasta ahora
+        const duration = new Date().getTime() - current.changedAt.getTime();
+        const hours = duration / (1000 * 60 * 60);
+
+        if (!totalTime[current.state.name]) {
+          totalTime[current.state.name] = 0;
+        }
+        totalTime[current.state.name] += hours;
+      }
+    }
+
+    return totalTime;
+  }
+
+  /**
+   * Obtener estadísticas de cambios por usuario
+   * @param userId ID del usuario (opcional)
+   */
+  async getChangesByUser(userId?: string): Promise<any[]> {
+    const queryBuilder = this.historyRepo
+      .createQueryBuilder('history')
+      .select('history.changedBy', 'user')
+      .addSelect('COUNT(history.id)', 'count')
+      .groupBy('history.changedBy')
+      .orderBy('count', 'DESC');
+
+    if (userId) {
+      queryBuilder.where('history.changedBy = :userId', { userId });
+    }
+
+    return queryBuilder.getRawMany();
+  }
+
+  /**
+   * Obtener resumen de cambios por período
+   * @param days Número de días hacia atrás
+   */
+  async getChangesSummary(days: number = 30): Promise<any[]> {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
+
+    return this.historyRepo
+      .createQueryBuilder('history')
+      .select('DATE(history.changedAt)', 'date')
+      .addSelect('COUNT(history.id)', 'count')
+      .where('history.changedAt >= :date', { date })
+      .groupBy('DATE(history.changedAt)')
+      .orderBy('date', 'DESC')
+      .getRawMany();
+  }
+
+  /**
+   * Obtener estadísticas de cambios por estado
+   */
+  async getChangesByState(): Promise<any[]> {
+    return this.historyRepo
+      .createQueryBuilder('history')
+      .leftJoinAndSelect('history.state', 'state')
+      .select('state.name', 'stateName')
+      .addSelect('COUNT(history.id)', 'count')
+      .groupBy('state.id')
+      .orderBy('count', 'DESC')
+      .getRawMany();
+  }
+
+  /**
+   * Obtener el historial completo con paginación
+   * @param page Número de página
+   * @param limit Elementos por página
+   */
+  async getPaginatedHistory(
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{ data: EquipmentStateHistory[]; total: number }> {
+    const [data, total] = await this.historyRepo.findAndCount({
+      relations: ['equipment', 'state'],
+      order: { changedAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return { data, total };
   }
 }
