@@ -1,0 +1,543 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository, DataSource, Between } from 'typeorm';
+import { Equipment } from './entities/equipment.entity';
+import { CreateEquipmentDto } from './dto/create-equipment.dto';
+import { UpdateEquipmentDto } from './dto/update-equipment.dto';
+import { Maker } from '../maker/entities/maker.entity';
+import { Model } from '../model/entities/model.entity';
+import { EntityManager } from 'typeorm';
+import { TypeEquipement } from 'src/type-equipement/entities/type-equipement.entity';
+import { TypeState } from 'src/type-state/entities/type-state.entity';
+import { EquipmentStateHistory } from 'src/equipment-state-history/entities/equipement-state-history.entity';
+import { Sites } from 'src/sites/entities/sites.entity';
+import { PaginatedResponse } from './interface/equipment.interface';
+import { Repair } from '../repairs/entities/repair.entity';
+import { User } from 'src/users/entities/user.entity';
+
+@Injectable()
+export class EquipmentsService {
+  constructor(
+    @InjectRepository(Equipment)
+    private readonly equipmentRepository: Repository<Equipment>,
+    @InjectRepository(Maker)
+    private readonly makerRepository: Repository<Maker>,
+    @InjectRepository(Model)
+    private readonly modelRepository: Repository<Model>,
+    @InjectRepository(TypeState)
+    private readonly typeStateRepository: Repository<TypeState>,
+    @InjectRepository(TypeEquipement)
+    private readonly typeEquipementRepository: Repository<TypeEquipement>,
+    @InjectRepository(EquipmentStateHistory)
+    private readonly historyRepository: Repository<EquipmentStateHistory>,
+    @InjectRepository(Sites)
+    private readonly siteRepository: Repository<Sites>,
+    @InjectRepository(Repair)
+    private readonly repairRepository: Repository<Repair>,
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
+    private readonly dataSource: DataSource,
+  ) {}
+
+  private readonly logger = new Logger(EquipmentsService.name);
+
+  async create(createDto: CreateEquipmentDto): Promise<Equipment> {
+    await this.validateUniqueFields(createDto);
+
+    return this.dataSource
+      .transaction(async (transactionalEntityManager) => {
+        // Validar y obtener todas las relaciones necesarias
+        const [maker, model, typeEquipement, initialState, site] =
+          await Promise.all([
+            this.validateMaker(createDto.makerId, transactionalEntityManager),
+            this.validateModel(
+              createDto.modelId,
+              createDto.makerId,
+              transactionalEntityManager,
+            ),
+            this.validateTypeEquipement(
+              createDto.typeEquipementId,
+              transactionalEntityManager,
+            ),
+            this.validateInitialState(
+              createDto.initialStateId,
+              transactionalEntityManager,
+            ),
+            createDto.siteId
+              ? this.validateSite(createDto.siteId, transactionalEntityManager)
+              : Promise.resolve(null),
+          ]);
+
+        // Crear el nuevo equipo
+        const equipment = new Equipment();
+        equipment.serialNumber = createDto.serialNumber;
+        equipment.inventoryNumber = createDto.inventoryNumber;
+        equipment.startOfOperation = createDto.startOfOperation;
+        equipment.maker = maker;
+        equipment.model = model;
+        equipment.typeEquipement = typeEquipement;
+        equipment.currentState = initialState;
+        equipment.site = site;
+
+        // Guardar el equipo
+        const savedEquipment = await transactionalEntityManager.save(equipment);
+
+        // Registrar el cambio de estado inicial
+        await transactionalEntityManager.save(EquipmentStateHistory, {
+          equipment: savedEquipment,
+          state: initialState,
+          changedBy: 'system',
+          changedAt: new Date(),
+        });
+
+        this.logger.log(`Equipo creado con ID: ${savedEquipment.id}`);
+        return savedEquipment;
+      })
+      .catch((error: unknown) => {
+        const message =
+          error instanceof Error ? error.message : 'Error desconocido';
+        this.logger.error(`Error al crear equipo: ${message}`);
+        throw error;
+      });
+  }
+
+  async findAll(): Promise<Equipment[]> {
+    return this.equipmentRepository.find({
+      relations: [
+        'maker',
+        'model',
+        'typeEquipement',
+        'currentState',
+        'site',
+        'site.province',
+      ],
+      order: { startOfOperation: 'DESC' },
+    });
+  }
+
+  async findOne(id: string): Promise<Equipment> {
+    const equipment = await this.equipmentRepository.findOne({
+      where: { id },
+      relations: [
+        'maker',
+        'model',
+        'typeEquipement',
+        'currentState',
+        'site',
+        'site.province',
+      ],
+    });
+
+    if (!equipment) {
+      throw new NotFoundException(`Equipo con ID ${id} no encontrado`);
+    }
+
+    return equipment;
+  }
+
+  async update(id: string, updateDto: UpdateEquipmentDto): Promise<Equipment> {
+    await this.validateUniqueFields(updateDto, id);
+
+    return this.dataSource.transaction(async (transactionalEntityManager) => {
+      // 1. Obtener el equipo con sus relaciones actuales
+      const equipment = await this.findOne(id);
+
+      // 2. Actualizar campos básicos
+      if (updateDto.serialNumber) {
+        equipment.serialNumber = updateDto.serialNumber;
+      }
+      if (updateDto.inventoryNumber) {
+        equipment.inventoryNumber = updateDto.inventoryNumber;
+      }
+      if (updateDto.startOfOperation) {
+        equipment.startOfOperation = updateDto.startOfOperation;
+      }
+
+      // 3. Actualizar relaciones
+      if (updateDto.makerId) {
+        equipment.maker = await this.validateMaker(
+          updateDto.makerId,
+          transactionalEntityManager,
+        );
+      }
+
+      if (updateDto.modelId) {
+        const makerId = updateDto.makerId || equipment.maker?.idMaker;
+        if (!makerId) {
+          throw new BadRequestException(
+            'Se requiere makerId para validar el modelo',
+          );
+        }
+        equipment.model = await this.validateModel(
+          updateDto.modelId,
+          makerId,
+          transactionalEntityManager,
+        );
+      }
+
+      if (updateDto.typeEquipementId) {
+        equipment.typeEquipement = await this.validateTypeEquipement(
+          updateDto.typeEquipementId,
+          transactionalEntityManager,
+        );
+      }
+
+      // 4. Actualizar SITE
+      if (updateDto.siteId !== undefined) {
+        equipment.site = updateDto.siteId
+          ? await this.validateSite(
+              updateDto.siteId,
+              transactionalEntityManager,
+            )
+          : null;
+      }
+
+      // 5. Manejar cambio de estado
+      if (
+        updateDto.currentStateId &&
+        updateDto.currentStateId !== equipment.currentState?.id
+      ) {
+        const newState = await this.validateInitialState(
+          updateDto.currentStateId,
+          transactionalEntityManager,
+        );
+
+        equipment.currentState = newState;
+
+        // Registrar en historial
+        await transactionalEntityManager.save(EquipmentStateHistory, {
+          equipment: { id },
+          state: newState,
+          changedBy: updateDto.changedBy || 'system',
+          changedAt: new Date(),
+        });
+      }
+
+      // Guardar todo en la misma transacción
+      const updatedEquipment = await transactionalEntityManager.save(equipment);
+
+      this.logger.log(`Equipo actualizado con ID: ${updatedEquipment.id}`);
+      return updatedEquipment;
+    });
+  }
+
+  async remove(id: string): Promise<void> {
+    this.logger.log(`🗑 Eliminando equipo ${id}`);
+
+    try {
+      // 1. Verificar si el equipo existe
+      const equipment = await this.equipmentRepository.findOne({
+        where: { id },
+        relations: ['repairs', 'stateHistory'],
+      });
+
+      if (!equipment) {
+        throw new NotFoundException(`Equipo con ID ${id} no encontrado`);
+      }
+
+      // 2. Verificar si tiene reparaciones
+      if (equipment.repairs && equipment.repairs.length > 0) {
+        this.logger.warn(
+          `⚠️ El equipo tiene ${equipment.repairs.length} reparaciones`,
+        );
+        throw new BadRequestException(
+          `No se puede eliminar: el equipo tiene ${equipment.repairs.length} reparaciones asociadas. ` +
+            `Elimine las reparaciones primero.`,
+        );
+      }
+
+      if (equipment.stateHistory && equipment.stateHistory.length > 0) {
+        this.logger.log(
+          `📊 Eliminando ${equipment.stateHistory.length} registros de historial`,
+        );
+        await this.historyRepository.delete({ equipment: { id } });
+      }
+
+      // 4. Eliminar el equipo
+      const result = await this.equipmentRepository.delete(id);
+
+      if (result.affected === 0) {
+        throw new Error('No se pudo eliminar el equipo');
+      }
+
+      this.logger.log(`✅✅✅ Equipo ${id} eliminado correctamente`);
+    } catch (error) {
+      this.logger.error(`❌ Error eliminando equipo ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async findByDate(date: string): Promise<Equipment[]> {
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(date)) {
+      throw new BadRequestException(
+        'Formato de fecha inválido. Use YYYY-MM-DD',
+      );
+    }
+
+    const startDate = new Date(date);
+    const endDate = new Date(date);
+    endDate.setDate(endDate.getDate() + 1);
+
+    return this.equipmentRepository.find({
+      where: {
+        startOfOperation: Between(startDate, endDate),
+      },
+      relations: ['maker', 'model', 'site'],
+      order: { startOfOperation: 'DESC' },
+    });
+  }
+
+  async findBySerialNumber(serialNumber: string): Promise<Equipment> {
+    const equipment = await this.equipmentRepository.findOne({
+      where: { serialNumber },
+      relations: ['maker', 'model', 'typeEquipement', 'currentState', 'site'],
+    });
+
+    if (!equipment) {
+      throw new NotFoundException(
+        `Equipo con serial ${serialNumber} no encontrado`,
+      );
+    }
+
+    return equipment;
+  }
+
+  async findByMaker(makerId: string): Promise<Equipment[]> {
+    return this.equipmentRepository.find({
+      where: { maker: { idMaker: makerId } },
+      relations: ['model', 'currentState', 'site'],
+    });
+  }
+
+  async findByModel(modelId: string): Promise<Equipment[]> {
+    return this.equipmentRepository.find({
+      where: { model: { id: modelId } },
+      relations: ['maker', 'currentState', 'site'],
+    });
+  }
+
+  async findBySite(siteId: string): Promise<Equipment[]> {
+    return this.equipmentRepository.find({
+      where: { site: { id: siteId } },
+      relations: ['maker', 'model', 'currentState'],
+      order: { inventoryNumber: 'ASC' },
+    });
+  }
+
+  async findBySitePaginated(
+    siteId: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<PaginatedResponse<Equipment>> {
+    const [data, total] = await this.equipmentRepository.findAndCount({
+      where: { site: { id: siteId } },
+      relations: ['maker', 'model', 'currentState'],
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { inventoryNumber: 'ASC' },
+    });
+
+    return {
+      data,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getStateHistory(id: string): Promise<EquipmentStateHistory[]> {
+    const equipmentExists = await this.equipmentRepository.existsBy({ id });
+    if (!equipmentExists) {
+      throw new NotFoundException(`Equipo con ID ${id} no encontrado`);
+    }
+
+    return this.historyRepository.find({
+      where: { equipment: { id } },
+      relations: ['state'],
+      order: { changedAt: 'DESC' },
+      select: {
+        id: true,
+        changedAt: true,
+        changedBy: true,
+        state: {
+          id: true,
+          name: true,
+          description: true,
+        },
+      },
+    });
+  }
+
+  async changeEquipmentState(
+    equipmentId: string,
+    newStateId: string,
+    userId?: string,
+  ): Promise<Equipment> {
+    return this.dataSource.transaction(async (manager) => {
+      // 1. Obtener el equipo
+      const equipment = await this.findOne(equipmentId);
+
+      // 2. Obtener el nuevo estado
+      const newState = await manager.findOne(TypeState, {
+        where: { id: newStateId },
+      });
+
+      if (!newState) {
+        throw new NotFoundException(
+          `Estado con ID ${newStateId} no encontrado`,
+        );
+      }
+
+      // 3. Obtener nombre del usuario
+      let changedBy = 'system';
+      if (userId) {
+        const user = await manager.findOne(User, {
+          where: { id: userId },
+        });
+        if (user) {
+          changedBy = `${user.name || ''} ${user.lastName || ''}`.trim();
+        }
+      }
+
+      // 4. Actualizar el estado del equipo
+      equipment.currentState = newState;
+      await manager.save(equipment);
+
+      // 5. Registrar en el historial
+      await manager.save(EquipmentStateHistory, {
+        equipment: { id: equipmentId },
+        state: newState,
+        changedBy: changedBy,
+        changedAt: new Date(),
+      });
+
+      return equipment;
+    });
+  }
+
+  private async validateUniqueFields(
+    dto: CreateEquipmentDto | UpdateEquipmentDto,
+    excludeId?: string,
+  ): Promise<void> {
+    const errors: string[] = [];
+
+    if (dto.serialNumber !== undefined) {
+      const existing = await this.equipmentRepository.findOne({
+        where: { serialNumber: dto.serialNumber },
+      });
+      if (existing && existing.id !== excludeId) {
+        errors.push(`Serial ${dto.serialNumber} ya existe`);
+      }
+    }
+
+    if (dto.inventoryNumber !== undefined) {
+      const existing = await this.equipmentRepository.findOne({
+        where: { inventoryNumber: dto.inventoryNumber },
+      });
+      if (existing && existing.id !== excludeId) {
+        errors.push(`Inventario ${dto.inventoryNumber} ya existe`);
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new BadRequestException({
+        message: 'Error de validación',
+        errors,
+      });
+    }
+  }
+
+  private async validateMaker(
+    makerId: string,
+    manager = this.makerRepository.manager,
+  ): Promise<Maker> {
+    const maker = await manager.findOneBy(Maker, { idMaker: makerId });
+    if (!maker)
+      throw new NotFoundException(`Fabricante con ID ${makerId} no encontrado`);
+    return maker;
+  }
+
+  private async validateSite(
+    siteId: string,
+    manager: EntityManager = this.siteRepository.manager,
+  ): Promise<Sites> {
+    const site = await manager.findOne(Sites, {
+      where: { id: siteId },
+      relations: ['province'],
+    });
+
+    if (!site) {
+      throw new NotFoundException(`Sitio con ID ${siteId} no encontrado`);
+    }
+    return site;
+  }
+
+  private async validateModel(
+    modelId: string,
+    makerId: string,
+    manager = this.modelRepository.manager,
+  ): Promise<Model> {
+    const model = await manager.findOne(Model, {
+      where: { id: modelId, maker: { idMaker: makerId } },
+      relations: ['maker'],
+    });
+    if (!model)
+      throw new NotFoundException(
+        `Modelo ${modelId} no pertenece al fabricante ${makerId}`,
+      );
+    return model;
+  }
+
+  private async validateInitialState(
+    stateId: string,
+    manager = this.typeStateRepository.manager,
+  ): Promise<TypeState> {
+    const state = await manager.findOneBy(TypeState, { id: stateId });
+    if (!state)
+      throw new NotFoundException(`Estado con ID ${stateId} no encontrado`);
+    return state;
+  }
+
+  private async validateTypeEquipement(
+    id: string,
+    manager: EntityManager = this.typeEquipementRepository.manager,
+  ): Promise<TypeEquipement> {
+    const typeEquipement = await manager.findOne(TypeEquipement, {
+      where: { id },
+    });
+
+    if (!typeEquipement) {
+      throw new NotFoundException(`Tipo de equipo con ID ${id} no encontrado`);
+    }
+
+    return typeEquipement;
+  }
+
+  async recordStateChange(
+    equipmentId: string,
+    newStateId: string,
+    changedBy: string = 'system',
+  ): Promise<EquipmentStateHistory> {
+    await this.validateInitialState(newStateId);
+    return this.historyRepository.save({
+      equipment: { id: equipmentId },
+      state: { id: newStateId },
+      changedBy,
+      changedAt: new Date(),
+    });
+  }
+
+  async findByCurrentState(stateId: string): Promise<Equipment[]> {
+    return this.equipmentRepository.find({
+      where: { currentState: { id: stateId } },
+      relations: ['maker', 'model', 'typeEquipement', 'currentState', 'site'],
+      order: { inventoryNumber: 'ASC' },
+    });
+  }
+}
